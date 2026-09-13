@@ -3,7 +3,7 @@
 Stable task ids. Any environment or session can pick this up, find the first unchecked box, and continue. Update the status line at the top of the block when you finish one.
 
 **Deadline** 18 Sep 2026 16:00 ET. **Assets 5 to 7 deadline** 18 Sep 08:00 ET.
-**Status** Block A not started.
+**Status** Block A done except the devnet airdrop (A4). Next: B1.
 
 Legend: `[ ]` open, `[x]` done, `[~]` in progress, `[-]` cut.
 
@@ -11,14 +11,14 @@ Legend: `[ ]` open, `[x]` done, `[~]` in progress, `[-]` cut.
 
 ## Block A — Ground. Target: tonight, 13 Sep
 
-Gate: `anchor build` succeeds and a local validator boots with the real TSLAx mint visible.
+Gate: `anchor build` succeeds and a local validator boots with the real TSLAx mint visible. **Build gate passed**, `target/deploy/stocklana.so` is 190,760 bytes. Two toolchain traps were hit and are documented in `CLAUDE.md`: a root-owned `~/.cache` and `edition2024` dependencies against the 1.84 platform-tools cargo. Always build with `./scripts/build.sh`.
 
-- [ ] **A1** Put the Solana CLI on PATH. Binary is at `~/.local/share/solana/install/active_release/bin`, currently not on PATH. Add to `~/.zshrc`, confirm `solana --version` reports 2.3.13.
-- [ ] **A2** `git init`, add a `.gitignore` for `target/`, `node_modules/`, `.anchor/`, `test-ledger/`, `*.env`.
+- [x] **A1** Put the Solana CLI on PATH. Binary is at `~/.local/share/solana/install/active_release/bin`, currently not on PATH. Add to `~/.zshrc`, confirm `solana --version` reports 2.3.13.
+- [x] **A2** `git init`, add a `.gitignore` for `target/`, `node_modules/`, `.anchor/`, `test-ledger/`, `*.env`.
 - [ ] **A3** `anchor init stocklana --no-git` into the repo, pin Anchor 0.32.1 in `Anchor.toml`.
-- [ ] **A4** Devnet keypair and airdrop. `solana config set --url devnet`, `solana airdrop 5`. Airdrops are rate limited, so do this early and more than once.
-- [ ] **A5** Fork script `scripts/fork.sh` with the `solana-test-validator --clone` line from `BUILD_PLAN.md` §4. Confirm the cloned TSLAx mint shows its extensions under `spl-token display`.
-- [ ] **A6** Run `docs/verify_constants.sh` once and commit the output as `docs/probe-YYYYMMDD.txt`. Every number in the plan should be re-derivable, not remembered.
+- [~] **A4** Devnet keypair and airdrop. Address is `2NwenGGqW1qJBJiGSH7FvtboZFhymZqrAnpXpYhgfW58`, balance 0. **The public RPC airdrop is rate limited and refused every attempt.** Use https://faucet.solana.com in a browser with that address, or `./scripts/airdrop.sh` to retry. This blocks devnet deployment in block F, nothing before it.
+- [x] **A5** Fork script `scripts/fork.sh` with the `solana-test-validator --clone` line from `BUILD_PLAN.md` §4. Confirm the cloned TSLAx mint shows its extensions under `spl-token display`.
+- [x] **A6** Run `docs/verify_constants.sh` once and commit the output as `docs/probe-YYYYMMDD.txt`. Every number in the plan should be re-derivable, not remembered.
 
 ## Block B — Collateral. Target: 14 Sep morning
 
