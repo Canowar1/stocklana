@@ -10,3 +10,4 @@ dist/
 !.env.example
 **/*.rs.bk
 .buildhome/
+keys/
