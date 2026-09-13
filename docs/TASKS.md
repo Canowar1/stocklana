@@ -15,7 +15,7 @@ Gate: `anchor build` succeeds and a local validator boots with the real TSLAx mi
 
 - [x] **A1** Put the Solana CLI on PATH. Binary is at `~/.local/share/solana/install/active_release/bin`, currently not on PATH. Add to `~/.zshrc`, confirm `solana --version` reports 2.3.13.
 - [x] **A2** `git init`, add a `.gitignore` for `target/`, `node_modules/`, `.anchor/`, `test-ledger/`, `*.env`.
-- [ ] **A3** `anchor init stocklana --no-git` into the repo, pin Anchor 0.32.1 in `Anchor.toml`.
+- [x] **A3** `anchor init stocklana --no-git` into the repo, pin Anchor 0.32.1 in `Anchor.toml`.
 - [~] **A4** Devnet keypair and airdrop. Address is `2NwenGGqW1qJBJiGSH7FvtboZFhymZqrAnpXpYhgfW58`, balance 0. **The public RPC airdrop is rate limited and refused every attempt.** Use https://faucet.solana.com in a browser with that address, or `./scripts/airdrop.sh` to retry. This blocks devnet deployment in block F, nothing before it.
 - [x] **A5** Fork script `scripts/fork.sh` with the `solana-test-validator --clone` line from `BUILD_PLAN.md` §4. Confirm the cloned TSLAx mint shows its extensions under `spl-token display`.
 - [x] **A6** Run `docs/verify_constants.sh` once and commit the output as `docs/probe-YYYYMMDD.txt`. Every number in the plan should be re-derivable, not remembered.
