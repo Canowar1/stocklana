@@ -1,0 +1,49 @@
+{
+  "_note": "Verified by live probe 2026-09-13 ~20:40 UTC. Re-verify with docs/verify_constants.sh before relying on any of it.",
+  "programs": {
+    "token_2022": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "pyth_receiver": "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ",
+    "pyth_push_oracle": "pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT"
+  },
+  "mints": {
+    "usdc_mainnet": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "tslax_mainnet": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+    "nvdax_mainnet": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh"
+  },
+  "oracle_feed_accounts_mainnet": {
+    "_derivation": "findProgramAddress([u16_le(0), feed_id_32], pyth_push_oracle)",
+    "TSLAx": "GpoWLTd6GoisYxYgHz7mTcZvgnfJu4SN7T6PxWjgUTFY",
+    "NVDAx": "6TPsjFigUaMFanRCsxQ4WbmG215xhRBXsb5y5Cn5L6eE"
+  },
+  "oracle_feed_accounts_devnet": {
+    "SOL/USD": "7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE",
+    "_note": "Only SOL/USD is live on devnet. NVDAx exists but is ~962h stale. No other equity feed exists."
+  },
+  "feed_ids": {
+    "TSLAx": "47a156470288850a440df3a6ce85a55917b813a19bb5b31128a33a986566a362",
+    "NVDAx": "4244d07890e4610f46bbde67de8f43a4bf8b569eebe904f136b469f148503b7f",
+    "SOL/USD": "ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d"
+  },
+  "apis": {
+    "xstocks_base": "https://api.xstocks.fi/api/v2",
+    "xstocks_openapi": "https://docs.xstocks.fi/_bundle/apis/@v2/openapi.json?download",
+    "jupiter_price_v3": "https://lite-api.jup.ag/price/v3",
+    "pyth_hermes": "AUTH REQUIRED - returns 401 for all feeds, do not depend on it"
+  },
+  "decimals": { "xstocks": 8, "usdc": 6, "pyth_equity_expo": -8 },
+  "market_universe": {
+    "xstocks_on_solana": 828,
+    "with_pyth_oracle_record": 51,
+    "with_hermes_id": 15,
+    "with_live_onchain_feed": 14,
+    "listable": ["AAPLx","COINx","CRCLx","GLDx","GOOGLx","HOODx","MCDx","METAx","MSTRx","NFLXx","NVDAx","QQQx","SPYx","TSLAx"],
+    "notably_absent": ["MSFTx","AMZNx","AMDx","PLTRx"]
+  },
+  "measured": {
+    "weekend_oracle_staleness_hours": 32.3,
+    "last_equity_print_utc": "2026-09-12T12:18:54Z",
+    "tslax_pool_liquidity_usd": 1251466,
+    "nvdax_pool_liquidity_usd": 1852792,
+    "nvdax_scaled_ui_multiplier": 1.001701196801074
+  }
+}

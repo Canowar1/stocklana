@@ -1,0 +1,10 @@
+target/
+node_modules/
+.anchor/
+test-ledger/
+dist/
+.next/
+*.env
+.env*
+!.env.example
+**/*.rs.bk
