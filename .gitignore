@@ -4,7 +4,9 @@ node_modules/
 test-ledger/
 dist/
 .next/
+.DS_Store
 *.env
 .env*
 !.env.example
 **/*.rs.bk
+.buildhome/

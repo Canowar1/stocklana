@@ -38,3 +38,23 @@ A two-sided market where holders of tokenized equity on Solana write covered cal
 ## Toolchain
 
 `anchor-cli 0.32.1`, `rustc 1.93.0`, `node v20.20.1`, `solana-cli 2.3.13` at `~/.local/share/solana/install/active_release/bin`, which is **not on PATH** until task A1 is done.
+
+## Build
+
+Always `./scripts/build.sh`, never bare `anchor build`.
+
+`~/.cache` on this machine is owned by root, so `cargo-build-sbf` cannot create
+`~/.cache/solana` and dies with `Failed to install platform-tools: Permission
+denied (os error 13)`. The script redirects `HOME` to `.buildhome/` inside the
+repo. The permanent fix needs a password and only the user can run it:
+
+```
+sudo chown -R "$USER" ~/.cache
+```
+
+`Cargo.lock` is committed and pinned. The platform-tools cargo is 1.84, so any
+dependency needing `edition2024` or rustc 1.85 breaks the build. Four crates are
+already pinned back: `proc-macro-crate`, `zeroize`, `indexmap`,
+`unicode-segmentation` and friends. If a fresh `cargo update` reintroduces the
+error, pin the offender to its newest release before 2025-02-01 rather than
+upgrading the toolchain.
