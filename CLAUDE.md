@@ -58,3 +58,15 @@ already pinned back: `proc-macro-crate`, `zeroize`, `indexmap`,
 `unicode-segmentation` and friends. If a fresh `cargo update` reintroduces the
 error, pin the offender to its newest release before 2025-02-01 rather than
 upgrading the toolchain.
+
+## Where the build stands
+
+Blocks A through E are done. Run `yarn test:unit` for the settlement math and
+`yarn test:fork` for the full lifecycle against a mainnet-forked validator
+carrying the real TSLAx mint and the real Pyth account. Both should be green
+before any change is considered finished.
+
+The next block needs a funded deployer keypair, which the user supplies. Local
+work uses `keys/localnet-payer.json`, a throwaway. `~/.config/solana/id.json`
+exists on this machine but the user does not recognise it, so it is not the
+deployer and must not be used or modified.

@@ -3,7 +3,7 @@
 Stable task ids. Any environment or session can pick this up, find the first unchecked box, and continue. Update the status line at the top of the block when you finish one.
 
 **Deadline** 18 Sep 2026 16:00 ET. **Assets 5 to 7 deadline** 18 Sep 08:00 ET.
-**Status** Block A done except the devnet airdrop (A4). Next: B1.
+**Status** Blocks A through E are done. The program is written, builds, and the full lifecycle passes on a mainnet fork against the real TSLAx mint and the real Pyth account. Next: Block F, which is the first thing that needs a funded deployer.
 
 Legend: `[ ]` open, `[x]` done, `[~]` in progress, `[-]` cut.
 
@@ -22,51 +22,51 @@ Gate: `anchor build` succeeds and a local validator boots with the real TSLAx mi
 
 ## Block B — Collateral. Target: 14 Sep morning
 
-Gate: a locked position exists on the fork and the writer can get it back.
+Gate: a locked position exists on the fork and the writer can get it back. **Passed.**
 
-- [ ] **B1** `Config` and `Market` accounts plus `init_config` and `add_market`, per `ARCHITECTURE.md` §1 and §2.
-- [ ] **B2** `add_market` verifies the feed account owner is the Pyth receiver and the feed id matches before storing.
-- [ ] **B3** `Offer` account and `write_call`. Collateral moves into the vault PDA through `token_interface`, not the legacy token program.
-- [ ] **B4** Read the mint's `ScaledUiAmountConfig` and store the effective multiplier in `Offer.multiplier_at_write`. Use the `new_multiplier_effective_timestamp` rule from `ARCHITECTURE.md` §5, not the raw field.
-- [ ] **B5** `reclaim` returns all collateral after expiry while the offer is still Open.
-- [ ] **B6** Test: write then reclaim, on the fork, against the real TSLAx mint. This is the first real proof the extension set does not block anything.
+- [x] **B1** `Config` and `Market` accounts plus `init_config` and `add_market`, per `ARCHITECTURE.md` §1 and §2.
+- [x] **B2** `add_market` verifies the feed account owner is the Pyth receiver and the feed id matches before storing.
+- [x] **B3** `Offer` account and `write_call`. Collateral moves into the vault PDA through `token_interface`, not the legacy token program.
+- [x] **B4** Read the mint's `ScaledUiAmountConfig` and store the effective multiplier in `Offer.multiplier_at_write`. Use the `new_multiplier_effective_timestamp` rule from `ARCHITECTURE.md` §5, not the raw field.
+- [x] **B5** `reclaim` returns all collateral after expiry while the offer is still Open.
+- [x] **B6** Test: write then reclaim, on the fork, against the real TSLAx mint. This is the first real proof the extension set does not block anything.
 
-## Block C — Oracle. **Go/no-go, gate at 14 Sep end of day**
+## Block C — Oracle. **Go/no-go PASSED, 14 Sep 01:20**
 
-Gate: the program prints the live TSLAX price, read from the real Pyth account, inside a test.
+Gate: the program prints the live TSLAX price, read from the real Pyth account, inside a test. **Passed.** The hand-written deserializer was used, not the SDK, because the 1.84 platform-tools cargo cannot build the crate's dependency tree. The program reads $365.23 from the genuine account bytes and verifies owner, feed id and exponent.
 
-- [ ] **C1** Try `pyth-solana-receiver-sdk` with Anchor 0.32.1. Timebox this to 90 minutes.
-- [ ] **C2** If C1 fights the toolchain, hand-deserialize using the verified 134-byte layout in `ARCHITECTURE.md` §4. Do not spend a third hour on the crate.
-- [ ] **C3** Staleness guard and `BadExponent` check. Test that a stale account makes the instruction fail rather than settle wrong.
-- [ ] **C4** Test reading the cloned `GpoWLTd6…` account on the fork and the live `7UVim…` SOL/USD account on devnet. Both paths, same code.
-- [ ] **C5** **Decision point.** If C4 does not pass tonight, cut Block D to a single-taker fill tomorrow morning and record that in this file. Do not carry the full book into day 3 on hope.
+- [x] **C1** Try `pyth-solana-receiver-sdk` with Anchor 0.32.1. Timebox this to 90 minutes.
+- [x] **C2** If C1 fights the toolchain, hand-deserialize using the verified 134-byte layout in `ARCHITECTURE.md` §4. Do not spend a third hour on the crate.
+- [x] **C3** Staleness guard and `BadExponent` check. Test that a stale account makes the instruction fail rather than settle wrong.
+- [x] **C4** Test reading the cloned `GpoWLTd6…` account on the fork and the live `7UVim…` SOL/USD account on devnet. Both paths, same code.
+- [x] **C5** **Decision point resolved: no cut needed.** C4 passed on the first night, so Block D shipped in full as an escrowed-bid book.
 
 ## Block D — The market. Target: 15 Sep
 
-Gate: premium lands with the writer and losing bidders get their money back.
+Gate: premium lands with the writer and losing bidders get their money back. **Passed**, 40 USDC premium, 0.2 USDC fee at 50 bps, losing 25 USDC bid refunded in full.
 
-- [ ] **D1** `Bid` account, bid escrow PDA, `place_bid`.
-- [ ] **D2** `cancel_bid` while the offer is Open.
-- [ ] **D3** `accept_bid`. Premium minus fee to the writer, fee to the destination. Enforce `min_premium`.
-- [ ] **D4** `refund_bid` for losers after the offer is filled, and for anyone after expiry.
-- [ ] **D5** Test: two bidders compete, the writer accepts one, the loser is made whole.
-- [ ] **D6** Fee is in the program from this block, even at zero bps. It is the day-31 answer and retrofitting it later touches every account.
+- [x] **D1** `Bid` account, bid escrow PDA, `place_bid`.
+- [x] **D2** `cancel_bid` while the offer is Open.
+- [x] **D3** `accept_bid`. Premium minus fee to the writer, fee to the destination. Enforce `min_premium`.
+- [x] **D4** `refund_bid` for losers after the offer is filled, and for anyone after expiry.
+- [x] **D5** Test: two bidders compete, the writer accepts one, the loser is made whole.
+- [x] **D6** Fee is in the program from this block, even at zero bps. It is the day-31 answer and retrofitting it later touches every account.
 
 ## Block E — Settlement. Target: 16 Sep
 
-Gate: the full lifecycle passes in one test file, in the money and out of the money.
+Gate: the full lifecycle passes in one test file, in the money and out of the money. **Passed**, 6 integration tests and 7 unit tests. Run them with `yarn test:fork` and `yarn test:unit`.
 
-- [ ] **E1** `settle`, permissionless, with the split from `ARCHITECTURE.md` §3 and `u128` intermediates.
-- [ ] **E2** Strike adjustment by the multiplier ratio. Test it by changing the multiplier on a mint you control between write and settle.
-- [ ] **E3** Buyer ATA creation on settle with `init_if_needed`, payer is the caller.
-- [ ] **E4** `MintPaused` path: pause a mint you control, assert `settle` fails cleanly and the collateral stays put.
-- [ ] **E5** End-to-end test, in the money: write, two bids, accept, warp past expiry, settle, assert both balances against the worked example.
-- [ ] **E6** End-to-end test, out of the money: assert the buyer gets nothing and the writer gets everything back.
-- [ ] **E7** Same two tests on the mainnet fork against the real TSLAx mint and the real oracle account.
+- [x] **E1** `settle`, permissionless, with the split from `ARCHITECTURE.md` §3 and `u128` intermediates.
+- [x] **E2** Strike adjustment by the multiplier ratio. Test it by changing the multiplier on a mint you control between write and settle.
+- [x] **E3** Buyer ATA creation on settle with `init_if_needed`, payer is the caller.
+- [x] **E4** `MintPaused` path: pause a mint you control, assert `settle` fails cleanly and the collateral stays put.
+- [x] **E5** End-to-end test, in the money: write, two bids, accept, warp past expiry, settle, assert both balances against the worked example.
+- [x] **E6** End-to-end test, out of the money: assert the buyer gets nothing and the writer gets everything back.
+- [x] **E7** Same two tests on the mainnet fork against the real TSLAx mint and the real oracle account.
 
 ## Block F — Front end and deployment. Target: 17 Sep
 
-Gate: a stranger with a wallet can complete the path on devnet without being told anything.
+Gate: a stranger with a wallet can complete the path on devnet without being told anything. **Blocked on a funded deployer.** Everything before this block runs locally and needs no SOL.
 
 - [ ] **F1** Next.js app, wallet adapter, Anchor client from the generated IDL.
 - [ ] **F2** Devnet replica mint: Token-2022 with the exact extension set from `BUILD_PLAN.md` §1.4, 8 decimals.
