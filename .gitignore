@@ -11,3 +11,4 @@ dist/
 **/*.rs.bk
 .buildhome/
 keys/
+fixtures/
