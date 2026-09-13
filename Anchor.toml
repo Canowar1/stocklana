@@ -5,6 +5,9 @@ package_manager = "yarn"
 resolution = true
 skip-lint = false
 
+# Local work uses a throwaway keypair generated in keys/. It holds no real funds.
+# When a real deployer is supplied, add a [programs.devnet] entry and point
+# provider.wallet at that keypair instead.
 [programs.localnet]
 stocklana = "EZRD9fkVxxQy97Ls35vDsnhQ1Tn8b6HagWeXV8GyqgNQ"
 
@@ -13,7 +16,7 @@ url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
-wallet = "~/.config/solana/id.json"
+wallet = "keys/localnet-payer.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""
