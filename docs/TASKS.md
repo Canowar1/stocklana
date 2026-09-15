@@ -3,7 +3,9 @@
 Stable task ids. Any environment or session can pick this up, find the first unchecked box, and continue. Update the status line at the top of the block when you finish one.
 
 **Deadline** 25 Sep 2026 16:00 ET, extended from 18 Sep. **Assets 5 to 7 deadline** 25 Sep 04:00 ET.
-**Status** Blocks A through E are done, and the deployment path is wired and proven on the fork. `./scripts/preflight.sh`, `./scripts/deploy.sh` and `./scripts/setup-markets.sh` are driven entirely by `.env`. Next: a funded devnet deployer, then Block F.
+**Status** Blocks A through E are done, the program is live on devnet, and the interface shell is up with live oracle data. Next: wiring the write and bid flows to the program (F6), the replica mint and faucet (F2, F3), and the price mirror (F4).
+
+Earlier status: blocks A through E done, deployment path wired and proven on the fork. `./scripts/preflight.sh`, `./scripts/deploy.sh` and `./scripts/setup-markets.sh` are driven entirely by `.env`. Next: a funded devnet deployer, then Block F.
 
 The deadline moved from 18 to 25 September. Nine days instead of two changes what is worth building; see the reopened scope note at the bottom.
 
@@ -70,14 +72,14 @@ Gate: the full lifecycle passes in one test file, in the money and out of the mo
 
 Gate: a stranger with a wallet can complete the path on devnet without being told anything. **Blocked on a funded deployer.** Everything before this block runs locally and needs no SOL.
 
-- [ ] **F1** Next.js app, wallet adapter, Anchor client from the generated IDL.
+- [x] **F1** Next.js app, wallet adapter, Anchor client from the generated IDL.
 - [ ] **F2** Devnet replica mint: Token-2022 with the exact extension set from `BUILD_PLAN.md` §1.4, 8 decimals.
 - [ ] **F3** Faucet button with a per-wallet cap. A faucet drained during judging is an avoidable death.
 - [ ] **F4** Devnet mirror program for the TSLAx price, plus a relayer script copying the mainnet account bytes. Label it as a mirror in the UI and show the mainnet source address beside it.
-- [ ] **F5** Market list from `docs/constants.json`. Two markets live on devnet, the other twelve visible and marked mainnet-only.
-- [ ] **F6** One screen: idle position, write form, offer book, bid form, position card.
-- [ ] **F7** Expiry picker restricted to US equity market hours. This is where the calendar rule lives, since the program only guards staleness.
-- [ ] **F8** Surface the oracle publish time, the confidence interval, and any pending multiplier change on the position card.
+- [x] **F5** Market list from `docs/constants.json`. Two markets live on devnet, the other twelve visible and marked mainnet-only.
+- [~] **F6** One screen: idle position, write form, offer book, bid form, position card.
+- [x] **F7** Expiry picker restricted to US equity market hours. This is where the calendar rule lives, since the program only guards staleness.
+- [x] **F8** Surface the oracle publish time, the confidence interval, and any pending multiplier change on the position card.
 - [ ] **F9** Deploy the program to devnet, deploy the front end, confirm the Demo URL works from a browser that has never seen it.
 
 ## Block G — Submission. **Hard deadline 25 Sep 04:00 ET**

@@ -13,3 +13,6 @@ dist/
 keys/
 fixtures/
 .runtime-keys/
+web/.next/
+web/node_modules/
+web/.env.local

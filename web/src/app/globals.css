@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * The single source of colour. Both themes come from the supplied token sheet;
+ * see docs/DESIGN.md. Light is the base and dark is applied by attribute, so a
+ * server-rendered page never flashes the wrong theme.
+ */
+:root {
+  --brand-primary: #11b2ba;
+  --brand-hover: #12949d;
+  --brand-muted: #1c6f7c;
+
+  --bg-primary: #f7f8f8;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #edeef1;
+  --bg-quaternary: #e2e3e5;
+
+  --border-primary: #b6bac3;
+  --border-secondary: #edeef1;
+
+  --text-primary: #272d3e;
+  --text-secondary: #8e95a2;
+  --text-muted: #7d7f82;
+  --text-button: #ffffff;
+
+  --status-success: #3bc171;
+  --status-success-10: rgb(59 193 113 / 0.1);
+  --status-warning: #ffb800;
+  --status-warning-10: rgb(255 184 0 / 0.1);
+  --status-error: #ff647c;
+  --status-error-10: rgb(255 100 124 / 0.1);
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #1b1f2c;
+  --bg-secondary: #272d3e;
+  --bg-tertiary: #151924;
+  --bg-quaternary: #0d1016;
+
+  --border-primary: #ffffff;
+  --border-secondary: #445371;
+
+  --text-primary: #ffffff;
+  --text-secondary: #b6bac3;
+  --text-muted: #7d7f82;
+
+  color-scheme: dark;
+}
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Every number in this product is compared against another number, so figures
+   never reflow between renders. */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+/*
+ * The wallet adapter ships its own purple. Left alone it is the loudest thing
+ * on the page and it belongs to a different product. These rules point it at
+ * the same tokens as every other control.
+ */
+.wallet-adapter-button {
+  background: var(--brand-primary) !important;
+  color: var(--text-button) !important;
+  font-family: inherit !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  height: 44px !important;
+  padding: 0 1rem !important;
+  border-radius: 0.5rem !important;
+  transition: background-color 180ms ease !important;
+}
+.wallet-adapter-button:not([disabled]):hover {
+  background: var(--brand-hover) !important;
+}
+.wallet-adapter-button-trigger { background: var(--brand-primary) !important; }
+.wallet-adapter-modal-wrapper {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-secondary) !important;
+  border-radius: 0.75rem !important;
+  font-family: inherit !important;
+}
+.wallet-adapter-modal-title { color: var(--text-primary) !important; font-size: 1.125rem !important; }
+.wallet-adapter-modal-list li button { color: var(--text-primary) !important; }
+.wallet-adapter-modal-list li button:hover { background: var(--bg-tertiary) !important; }
+.wallet-adapter-modal-button-close { background: var(--bg-tertiary) !important; }
+.wallet-adapter-dropdown-list {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-secondary) !important;
+}
+.wallet-adapter-dropdown-list-item { color: var(--text-primary) !important; font-family: inherit !important; }
+.wallet-adapter-dropdown-list-item:not([disabled]):hover { background: var(--bg-tertiary) !important; }
