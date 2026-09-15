@@ -22,8 +22,16 @@ const MIN_DURATION = Number(process.env.MIN_DURATION_SECS ?? 60);
 
 type MarketCfg = {
   symbol: string; label: string; underlyingMint: string;
-  feedAccount: string; feedId: string; maxStalenessSecs: number; mocks: string;
+  feedAccount: string; feedId: string;
+  maxStalenessSecs: number; maxConfBps: number; mocks: string;
 };
+
+/// The upgrade authority is the only account allowed to create the config, so
+/// the address has to be passed and proved.
+const programDataAddress = (programId: PublicKey) =>
+  PublicKey.findProgramAddressSync(
+    [programId.toBuffer()],
+    new PublicKey("BPFLoaderUpgradeab1e11111111111111111111111"))[0];
 
 (async () => {
   const base = anchor.AnchorProvider.env();
@@ -66,6 +74,7 @@ type MarketCfg = {
   } else {
     await program.methods.initConfig(FEE_BPS, new BN(MIN_DURATION))
       .accountsPartial({ authority: signer, config, feeDestination,
+        program: program.programId, programData: programDataAddress(program.programId),
         systemProgram: SystemProgram.programId })
       .rpc();
     console.log(`config    created, fee ${FEE_BPS} bps, min duration ${MIN_DURATION}s`);
@@ -89,14 +98,15 @@ type MarketCfg = {
     if (!feedInfo) { console.log(`  ${m.symbol.padEnd(8)} SKIP, feed account not on ${CLUSTER}`); continue; }
 
     try {
-      await program.methods.addMarket([...feedId], m.maxStalenessSecs)
+      await program.methods.addMarket([...feedId], m.maxStalenessSecs, m.maxConfBps ?? 100)
         .accountsPartial({ authority: signer, config, market,
           underlyingMint: underlying, premiumMint,
           feedAccount: new PublicKey(m.feedAccount),
           systemProgram: SystemProgram.programId })
         .rpc();
       const decimals = (await getMint(conn, underlying, "confirmed", mintInfo.owner)).decimals;
-      console.log(`  ${m.symbol.padEnd(8)} registered  ${market.toBase58()}  ${decimals}dp  mocks: ${m.mocks}`);
+      console.log(`  ${m.symbol.padEnd(8)} registered  ${market.toBase58()}  ${decimals}dp  ` +
+        `staleness ${m.maxStalenessSecs}s  conf<=${m.maxConfBps ?? 100}bps  mocks: ${m.mocks}`);
     } catch (e: any) {
       console.log(`  ${m.symbol.padEnd(8)} FAILED  ${e.message ?? e}`);
     }

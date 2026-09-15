@@ -1,24 +1,27 @@
 {
-  "_note": "Mainnet-forked local validator. The mints are the real ones with only the mint authority patched so collateral can be minted for test wallets; the Pyth accounts are untouched mainnet bytes. See scripts/make_fixtures.py.",
-  "premiumMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-  "markets": [
-    {
-      "symbol": "TSLAx",
-      "label": "Tesla xStock / USD",
-      "underlyingMint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
-      "feedAccount": "GpoWLTd6GoisYxYgHz7mTcZvgnfJu4SN7T6PxWjgUTFY",
-      "feedId": "47a156470288850a440df3a6ce85a55917b813a19bb5b31128a33a986566a362",
-      "maxStalenessSecs": 2592000,
-      "mocks": "mint authority patched so the fork can mint test balances"
-    },
-    {
-      "symbol": "NVDAx",
-      "label": "NVIDIA xStock / USD",
-      "underlyingMint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
-      "feedAccount": "6TPsjFigUaMFanRCsxQ4WbmG215xhRBXsb5y5Cn5L6eE",
-      "feedId": "4244d07890e4610f46bbde67de8f43a4bf8b569eebe904f136b469f148503b7f",
-      "maxStalenessSecs": 2592000,
-      "mocks": "mint authority patched so the fork can mint test balances"
-    }
-  ]
+ "_note": "Mainnet-forked local validator. The mints are the real ones with only the mint authority patched so collateral can be minted for test wallets; the Pyth accounts are untouched mainnet bytes. See scripts/make_fixtures.py.",
+ "premiumMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+ "markets": [
+  {
+   "symbol": "TSLAx",
+   "label": "Tesla xStock / USD",
+   "underlyingMint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+   "feedAccount": "GpoWLTd6GoisYxYgHz7mTcZvgnfJu4SN7T6PxWjgUTFY",
+   "feedId": "47a156470288850a440df3a6ce85a55917b813a19bb5b31128a33a986566a362",
+   "maxStalenessSecs": 2592000,
+   "mocks": "mint authority patched so the fork can mint test balances",
+   "maxConfBps": 100
+  },
+  {
+   "symbol": "NVDAx",
+   "label": "NVIDIA xStock / USD",
+   "underlyingMint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+   "feedAccount": "6TPsjFigUaMFanRCsxQ4WbmG215xhRBXsb5y5Cn5L6eE",
+   "feedId": "4244d07890e4610f46bbde67de8f43a4bf8b569eebe904f136b469f148503b7f",
+   "maxStalenessSecs": 2592000,
+   "mocks": "mint authority patched so the fork can mint test balances",
+   "maxConfBps": 100
+  }
+ ],
+ "_confNote": "Ceiling on the oracle confidence band as a fraction of the price, in basis points. Settlement is refused above it. TSLAX publishes about 2.3 bps, so 100 is generous. Zero disables the gate."
 }

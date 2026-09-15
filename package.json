@@ -11,7 +11,8 @@
     "deploy": "./scripts/deploy.sh",
     "setup:markets": "./scripts/setup-markets.sh",
     "import:key": "./scripts/import-key.sh",
-    "verify": "./scripts/verify.sh"
+    "verify": "./scripts/verify.sh",
+    "teardown": "./scripts/teardown.sh"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1"

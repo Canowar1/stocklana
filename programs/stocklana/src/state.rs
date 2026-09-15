@@ -24,6 +24,15 @@ pub struct Market {
     pub feed_account: Pubkey,
     pub feed_id: [u8; 32],
     pub max_staleness_secs: u32,
+    /// Ceiling on the oracle's confidence interval as a fraction of the price,
+    /// in basis points. A settlement price whose band is wider than this is
+    /// refused. Pyth publishes confidence for a reason and a wide band means
+    /// the publishers disagree.
+    pub max_conf_bps: u16,
+    /// Offers written against this market that have not yet settled or been
+    /// reclaimed. A market cannot be closed while any are outstanding, because
+    /// closing it would make their collateral unrecoverable.
+    pub open_offers: u32,
     pub enabled: bool,
     pub bump: u8,
 }

@@ -56,6 +56,26 @@ pub fn settlement_split(collateral: u64, settle_price: u64, strike: u64) -> Resu
     Ok((payout, remainder))
 }
 
+/// Rejects a price whose confidence band is wider than `max_conf_bps` of the
+/// price itself. Pyth widens the band when its publishers disagree, which is
+/// exactly when a settlement should not be forced through.
+pub fn require_confidence(price: u64, conf: u64, max_conf_bps: u16) -> Result<()> {
+    if max_conf_bps == 0 {
+        return Ok(());
+    }
+    require!(price > 0, StocklanaError::BadOraclePrice);
+    let bps = (conf as u128)
+        .checked_mul(10_000)
+        .ok_or(StocklanaError::MathOverflow)?
+        .checked_div(price as u128)
+        .ok_or(StocklanaError::MathOverflow)?;
+    require!(
+        bps <= max_conf_bps as u128,
+        StocklanaError::OracleConfidenceTooWide
+    );
+    Ok(())
+}
+
 /// Splits an accepted premium into the writer's share and the protocol fee.
 pub fn premium_split(amount: u64, fee_bps: u16) -> Result<(u64, u64)> {
     require!(fee_bps <= 10_000, StocklanaError::FeeTooHigh);
@@ -119,6 +139,26 @@ mod tests {
         // tokens at $600 each, the same $1500.
         let pre = settlement_split(10_00000000, 600_00000000, 450_00000000).unwrap();
         assert_eq!(pre.0, payout);
+    }
+
+    #[test]
+    fn confidence_gate_accepts_a_tight_band_and_rejects_a_wide_one() {
+        // TSLAX at probe time: $365.23 with a $0.0853 band, about 2.3 bps.
+        assert!(require_confidence(365_23000000, 8_533118, 100).is_ok());
+        // A band ten percent of the price is refused at a 1% ceiling.
+        assert!(require_confidence(365_23000000, 36_523000000, 100).is_err());
+        // Zero disables the gate.
+        assert!(require_confidence(365_23000000, 36_523000000, 0).is_ok());
+    }
+
+    #[test]
+    fn settlement_rounding_favours_the_writer_by_at_most_one_base_unit() {
+        // Integer division truncates, so the buyer can be short by up to one
+        // base unit. At 8 decimals that is 1e-8 of a share.
+        let (payout, rest) = settlement_split(10_00000000, 365_23000000, 328_70700000).unwrap();
+        let exact = 10_00000000f64 * (365.23 - 328.707) / 365.23;
+        assert!((exact - payout as f64) < 1.0);
+        assert_eq!(payout + rest, 10_00000000);
     }
 
     #[test]

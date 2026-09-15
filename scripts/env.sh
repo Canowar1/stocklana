@@ -20,11 +20,28 @@ fi
 cd "$_repo"
 export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
 
+# Load .env, but never let it override a variable that is already set in the
+# environment. An explicit `CLUSTER=localnet ./scripts/test-fork.sh` must win,
+# otherwise a test run silently retargets whatever .env happens to say, which
+# is how a fork test ends up pointed at devnet.
 if [ -f .env ]; then
-  set -a
-  # shellcheck disable=SC1091
-  . ./.env
-  set +a
+  while IFS= read -r _line || [ -n "$_line" ]; do
+    case "$_line" in ''|'#'*) continue ;; esac
+    case "$_line" in *=*) ;; *) continue ;; esac
+    _key="${_line%%=*}"
+    _val="${_line#*=}"
+    _key="$(printf '%s' "$_key" | tr -d '[:space:]')"
+    case "$_key" in ''|*[!A-Za-z0-9_]*) continue ;; esac
+    # Strip one layer of surrounding quotes.
+    case "$_val" in
+      \"*\") _val="${_val#\"}"; _val="${_val%\"}" ;;
+      \'*\') _val="${_val#\'}"; _val="${_val%\'}" ;;
+    esac
+    if [ -z "$(eval printf '%s' "\"\${$_key:-}\"")" ]; then
+      export "$_key=$_val"
+    fi
+  done < .env
+  unset _line _key _val
 fi
 
 CLUSTER="${CLUSTER:-localnet}"

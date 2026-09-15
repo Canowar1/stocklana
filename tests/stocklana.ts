@@ -110,13 +110,17 @@ describe("stocklana", () => {
     // Block C gate. add_market only succeeds if the program can verify the
     // account owner, the feed id and the exponent against the genuine bytes.
     if (!(await conn.getAccountInfo(config))) {
+      const programData = PublicKey.findProgramAddressSync(
+        [program.programId.toBuffer()],
+        new PublicKey("BPFLoaderUpgradeab1e11111111111111111111111"))[0];
       await program.methods.initConfig(50, new BN(1))
         .accountsPartial({ authority: payer.publicKey, config, feeDestination: feeDest,
+          program: program.programId, programData,
           systemProgram: SystemProgram.programId })
         .rpc();
     }
     if (!(await conn.getAccountInfo(market))) {
-      await program.methods.addMarket([...FEED_ID], TEST_MAX_STALENESS)
+      await program.methods.addMarket([...FEED_ID], TEST_MAX_STALENESS, 100)
         .accountsPartial({ authority: payer.publicKey, config, market,
           underlyingMint: TSLAX, premiumMint: USDC, feedAccount: TSLAX_FEED,
           systemProgram: SystemProgram.programId })
@@ -207,7 +211,9 @@ describe("stocklana", () => {
     assert.equal(done.payoutAmount.toNumber(), expected);
     assert.equal(await bal(aliceAta, TOKEN_2022_PROGRAM_ID), expected);
     assert.equal(await bal(writerTslax, TOKEN_2022_PROGRAM_ID), 90e8 + (10e8 - expected));
-    assert.equal(await bal(vault, TOKEN_2022_PROGRAM_ID), 0);
+    // settle closes the vault, so its rent goes back rather than being
+    // stranded on-chain forever.
+    assert.isNull(await conn.getAccountInfo(vault), "vault should be closed after settle");
     assert.isBelow(expected, 10e8, "payout must never exceed the collateral");
     console.log(`      settled at $${(S / 1e8).toFixed(2)} vs strike $${(K / 1e8).toFixed(2)}`);
     console.log(`      buyer ${(expected / 1e8).toFixed(8)} TSLAx, writer keeps ${((10e8 - expected) / 1e8).toFixed(8)}`);
@@ -281,6 +287,7 @@ describe("stocklana", () => {
       .signers([writer]).rpc();
 
     assert.equal(await bal(writerTslax, TOKEN_2022_PROGRAM_ID), before + 4e8);
+    assert.isNull(await conn.getAccountInfo(vault), "vault should be closed after reclaim");
   });
 
   it("refuses to settle on a stale oracle", async () => {
@@ -290,7 +297,7 @@ describe("stocklana", () => {
     // The cloned account is far older than 60 seconds, so a market with a tight
     // staleness window must refuse. Registering it proves the guard is live.
     try {
-      await program.methods.addMarket(tightFeedId, 60)
+      await program.methods.addMarket(tightFeedId, 60, 100)
         .accountsPartial({ authority: payer.publicKey, config, market: tightMarket,
           underlyingMint: TSLAX, premiumMint: USDC, feedAccount: TSLAX_FEED,
           systemProgram: SystemProgram.programId })

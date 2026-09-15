@@ -12,7 +12,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked},
+    token_interface::{self, CloseAccount, Mint, TokenAccount, TokenInterface, TransferChecked},
 };
 
 pub mod errors;
@@ -36,6 +36,9 @@ pub const MAX_UNDERLYING_DECIMALS: u8 = 18;
 pub mod stocklana {
     use super::*;
 
+    /// Only the program's upgrade authority may call this. Without that check
+    /// the first caller after a fresh deploy becomes the protocol authority,
+    /// which is front-runnable by anyone watching for the deploy transaction.
     pub fn init_config(
         ctx: Context<InitConfig>,
         fee_bps: u16,
@@ -58,6 +61,7 @@ pub mod stocklana {
         ctx: Context<AddMarket>,
         feed_id: [u8; 32],
         max_staleness_secs: u32,
+        max_conf_bps: u16,
     ) -> Result<()> {
         require!(
             ctx.accounts.underlying_mint.decimals <= MAX_UNDERLYING_DECIMALS,
@@ -77,6 +81,8 @@ pub mod stocklana {
         m.feed_account = ctx.accounts.feed_account.key();
         m.feed_id = feed_id;
         m.max_staleness_secs = max_staleness_secs;
+        m.max_conf_bps = max_conf_bps;
+        m.open_offers = 0;
         m.enabled = true;
         m.bump = ctx.bumps.market;
         Ok(())
@@ -127,6 +133,12 @@ pub mod stocklana {
             collateral_amount,
             ctx.accounts.underlying_mint.decimals,
         )?;
+
+        let market = &mut ctx.accounts.market;
+        market.open_offers = market
+            .open_offers
+            .checked_add(1)
+            .ok_or(StocklanaError::MathOverflow)?;
 
         let o = &mut ctx.accounts.offer;
         o.market = ctx.accounts.market.key();
@@ -333,6 +345,8 @@ pub mod stocklana {
             now,
         )?;
 
+        math::require_confidence(price.price, price.conf, market.max_conf_bps)?;
+
         let mult_now =
             mint_ext::effective_multiplier(&ctx.accounts.underlying_mint.to_account_info(), now)?;
         let mult_at_write = f64::from_bits(ctx.accounts.offer.multiplier_at_write);
@@ -381,6 +395,16 @@ pub mod stocklana {
             )?;
         }
 
+        close_vault(
+            &ctx.accounts.token_program,
+            &ctx.accounts.vault,
+            &ctx.accounts.cranker.to_account_info(),
+            signer,
+        )?;
+
+        let market = &mut ctx.accounts.market;
+        market.open_offers = market.open_offers.saturating_sub(1);
+
         let o = &mut ctx.accounts.offer;
         o.state = OfferState::Settled;
         o.settled_price = price.price;
@@ -396,6 +420,57 @@ pub mod stocklana {
             payout_to_buyer: payout,
             returned_to_writer: remainder,
         });
+        Ok(())
+    }
+
+    /// Closes a market and returns its rent. Deliberately strict: the market
+    /// must be disabled first, so no new offers can arrive, and every offer
+    /// written against it must already have settled or been reclaimed. Closing
+    /// a market with live offers would leave their collateral unreachable.
+    pub fn close_market(ctx: Context<CloseMarket>) -> Result<()> {
+        require!(!ctx.accounts.market.enabled, StocklanaError::MarketStillEnabled);
+        require!(
+            ctx.accounts.market.open_offers == 0,
+            StocklanaError::MarketHasOpenOffers
+        );
+        Ok(())
+    }
+
+    /// Closes the config and returns its rent. Only the authority, and only
+    /// useful when tearing down a deployment.
+    pub fn close_config(_ctx: Context<CloseConfig>) -> Result<()> {
+        Ok(())
+    }
+
+    /// Escape hatch for an account this program owns that no longer matches the
+    /// struct it was written with, which is what happens when a layout changes
+    /// before launch. Typed instructions cannot touch such an account at all,
+    /// because Anchor refuses to deserialize it.
+    ///
+    /// Authorised by the program's upgrade authority rather than by the config,
+    /// so it still works when the config itself is the stale account. This
+    /// grants no power that authority did not already have: anyone who can
+    /// replace the program can already do anything to its accounts.
+    ///
+    /// It moves no tokens. Collateral lives in SPL token accounts owned by
+    /// vault PDAs, which this cannot touch.
+    pub fn admin_close_account(ctx: Context<AdminCloseAccount>) -> Result<()> {
+        let target = &ctx.accounts.target;
+        let dest = &ctx.accounts.authority;
+
+        let lamports = target.lamports();
+        **target.try_borrow_mut_lamports()? = 0;
+        **dest.try_borrow_mut_lamports()? = dest
+            .lamports()
+            .checked_add(lamports)
+            .ok_or(StocklanaError::MathOverflow)?;
+
+        // Wipe the discriminator so the emptied account cannot be mistaken for
+        // a live one before the runtime reclaims it.
+        let mut data = target.try_borrow_mut_data()?;
+        for byte in data.iter_mut().take(8) {
+            *byte = 0;
+        }
         Ok(())
     }
 
@@ -430,9 +505,35 @@ pub mod stocklana {
             ctx.accounts.underlying_mint.decimals,
         )?;
 
+        close_vault(
+            &ctx.accounts.token_program,
+            &ctx.accounts.vault,
+            &ctx.accounts.writer.to_account_info(),
+            signer,
+        )?;
+        ctx.accounts.market.open_offers = ctx.accounts.market.open_offers.saturating_sub(1);
         ctx.accounts.offer.state = OfferState::Reclaimed;
         Ok(())
     }
+}
+
+/// Returns the vault's rent to `destination` once it is empty. Without this the
+/// rent of every settled position is stranded on-chain forever.
+fn close_vault<'info>(
+    token_program: &Interface<'info, TokenInterface>,
+    vault: &InterfaceAccount<'info, TokenAccount>,
+    destination: &AccountInfo<'info>,
+    signer: &[&[&[u8]]],
+) -> Result<()> {
+    token_interface::close_account(CpiContext::new_with_signer(
+        token_program.to_account_info(),
+        CloseAccount {
+            account: vault.to_account_info(),
+            destination: destination.clone(),
+            authority: vault.to_account_info(),
+        },
+        signer,
+    ))
 }
 
 fn refund(ctx: &Context<RefundBid>) -> Result<()> {
@@ -477,6 +578,13 @@ pub struct InitConfig<'info> {
     )]
     pub config: Account<'info, Config>,
     pub fee_destination: InterfaceAccount<'info, TokenAccount>,
+    #[account(constraint = program.programdata_address()? == Some(program_data.key()))]
+    pub program: Program<'info, program::Stocklana>,
+    #[account(
+        constraint = program_data.upgrade_authority_address == Some(authority.key())
+            @ StocklanaError::Unauthorized
+    )]
+    pub program_data: Account<'info, ProgramData>,
     pub system_program: Program<'info, System>,
 }
 
@@ -527,6 +635,7 @@ pub struct WriteCall<'info> {
     #[account(seeds = [b"config"], bump = config.bump)]
     pub config: Account<'info, Config>,
     #[account(
+        mut,
         has_one = underlying_mint @ StocklanaError::WrongFeed,
         constraint = market.enabled @ StocklanaError::MarketDisabled
     )]
@@ -677,6 +786,7 @@ pub struct Settle<'info> {
     #[account(mut)]
     pub cranker: Signer<'info>,
     #[account(
+        mut,
         has_one = underlying_mint @ StocklanaError::WrongFeed,
         has_one = feed_account @ StocklanaError::WrongFeed
     )]
@@ -724,10 +834,55 @@ pub struct Settle<'info> {
 }
 
 #[derive(Accounts)]
+pub struct AdminCloseAccount<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    /// CHECK: must be owned by this program; emptied and its discriminator
+    /// wiped. Guarded by the upgrade-authority constraint below.
+    #[account(mut, owner = crate::ID @ StocklanaError::Unauthorized)]
+    pub target: UncheckedAccount<'info>,
+    #[account(constraint = program.programdata_address()? == Some(program_data.key()))]
+    pub program: Program<'info, program::Stocklana>,
+    #[account(
+        constraint = program_data.upgrade_authority_address == Some(authority.key())
+            @ StocklanaError::Unauthorized
+    )]
+    pub program_data: Account<'info, ProgramData>,
+}
+
+#[derive(Accounts)]
+pub struct CloseMarket<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(
+        seeds = [b"config"],
+        bump = config.bump,
+        has_one = authority @ StocklanaError::Unauthorized
+    )]
+    pub config: Account<'info, Config>,
+    #[account(mut, close = authority)]
+    pub market: Account<'info, Market>,
+}
+
+#[derive(Accounts)]
+pub struct CloseConfig<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(
+        mut,
+        close = authority,
+        seeds = [b"config"],
+        bump = config.bump,
+        has_one = authority @ StocklanaError::Unauthorized
+    )]
+    pub config: Account<'info, Config>,
+}
+
+#[derive(Accounts)]
 pub struct Reclaim<'info> {
     #[account(mut)]
     pub writer: Signer<'info>,
-    #[account(has_one = underlying_mint @ StocklanaError::WrongFeed)]
+    #[account(mut, has_one = underlying_mint @ StocklanaError::WrongFeed)]
     pub market: Account<'info, Market>,
     #[account(
         mut,

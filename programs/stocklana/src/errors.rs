@@ -12,6 +12,8 @@ pub enum StocklanaError {
     BadOracleOwner,
     #[msg("Oracle price is not positive")]
     BadOraclePrice,
+    #[msg("Oracle confidence interval is wider than the market allows")]
+    OracleConfidenceTooWide,
     #[msg("Offer has not reached its expiry yet")]
     NotExpired,
     #[msg("Offer is not in the required state for this instruction")]
@@ -28,6 +30,10 @@ pub enum StocklanaError {
     MintPaused,
     #[msg("Market is disabled by the authority")]
     MarketDisabled,
+    #[msg("Market still has outstanding offers and cannot be closed")]
+    MarketHasOpenOffers,
+    #[msg("Market must be disabled before it can be closed")]
+    MarketStillEnabled,
     #[msg("Signer is not authorised for this action")]
     Unauthorized,
     #[msg("Arithmetic overflow")]
