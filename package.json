@@ -9,7 +9,8 @@
     "test:fork": "./scripts/test-fork.sh",
     "preflight": "./scripts/preflight.sh",
     "deploy": "./scripts/deploy.sh",
-    "setup:markets": "./scripts/setup-markets.sh"
+    "setup:markets": "./scripts/setup-markets.sh",
+    "import:key": "./scripts/import-key.sh"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1"

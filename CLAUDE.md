@@ -85,9 +85,17 @@ Markets live in `config/markets.<cluster>.json`. Mainnet holds all fourteen
 xStocks with a live on-chain Pyth feed. Devnet holds SOL/USD, the only feed
 genuinely live there, so it is the market with no mock in the price path.
 
-No private key is ever read from an environment variable. `.env` points at
-keypair *files*, and `keys/` is gitignored. `scripts/deploy.sh` refuses to
-target mainnet; that is a deliberate manual step.
+Keys are referenced by file path. To bring in a base58 key of the kind Phantom
+exports, use `./scripts/import-key.sh keys/devnet-deployer.json`, which reads it
+at a hidden prompt so it never reaches shell history, and writes the file 0600.
+
+`DEPLOYER_PRIVATE_KEY` exists for one case only: a hosted process with no
+filesystem, such as the devnet price-mirror relayer in Block F. When set,
+`env.sh` materialises it to `.runtime-keys/deployer.json` at 0600 and then
+unsets it, so no child process or crash report inherits it. It is refused when
+`CLUSTER=mainnet`. For local work use the file.
+
+`scripts/deploy.sh` refuses to target mainnet; that is a deliberate manual step.
 
 If the program keypair is replaced, run `./scripts/sync-program-id.sh` to
 rewrite `declare_id!` and `Anchor.toml`, then rebuild.
