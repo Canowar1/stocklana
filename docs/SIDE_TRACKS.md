@@ -1,6 +1,6 @@
 # Side tracks
 
-Assessed 15 September 2026. One fits and costs nothing. Four do not, and chasing any of them costs the main submission with two days left.
+Assessed 15 September 2026. One fits and costs nothing. Four do not. The deadline has since moved to 25 September, which does not change any verdict below: the four declines are about product shape and principle, not about time.
 
 ---
 
@@ -57,4 +57,4 @@ One panel, not a feature. The position card already has to show the settlement p
 
 ## The schedule reality
 
-Two days remain and Block F has not started. The Pyth track is worth claiming because it requires writing a paragraph and, optionally, one display panel. Every other track on this list requires a second product. The main submission is not finished, and an unfinished main submission wins nothing in any track.
+With the deadline at 25 September there is room for the Pyth display panel, which was already close to task F8. There is still not room for a second product, and the reasons for declining the other four were never primarily about time. An unfinished main submission wins nothing in any track.

@@ -6,7 +6,10 @@
     "build": "./scripts/build.sh",
     "fork": "./scripts/fork.sh",
     "test:unit": "./scripts/test-unit.sh",
-    "test:fork": "./scripts/test-fork.sh"
+    "test:fork": "./scripts/test-fork.sh",
+    "preflight": "./scripts/preflight.sh",
+    "deploy": "./scripts/deploy.sh",
+    "setup:markets": "./scripts/setup-markets.sh"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1"

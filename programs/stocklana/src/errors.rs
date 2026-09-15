@@ -38,6 +38,6 @@ pub enum StocklanaError {
     ZeroStrike,
     #[msg("Fee in basis points exceeds 100%")]
     FeeTooHigh,
-    #[msg("Underlying mint must have 8 decimals")]
+    #[msg("Underlying mint has more decimals than the program supports")]
     BadMintDecimals,
 }

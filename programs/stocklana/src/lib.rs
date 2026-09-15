@@ -26,7 +26,11 @@ use state::*;
 
 declare_id!("EZRD9fkVxxQy97Ls35vDsnhQ1Tn8b6HagWeXV8GyqgNQ");
 
-pub const UNDERLYING_DECIMALS: u8 = 8;
+/// The settlement split is a ratio, `collateral * (S - K) / S`, so it is
+/// dimensionless and correct for any mint decimals. Only `transfer_checked`
+/// cares, and it reads the mint. The cap exists so an absurd mint cannot
+/// overflow the u128 intermediates.
+pub const MAX_UNDERLYING_DECIMALS: u8 = 18;
 
 #[program]
 pub mod stocklana {
@@ -56,7 +60,7 @@ pub mod stocklana {
         max_staleness_secs: u32,
     ) -> Result<()> {
         require!(
-            ctx.accounts.underlying_mint.decimals == UNDERLYING_DECIMALS,
+            ctx.accounts.underlying_mint.decimals <= MAX_UNDERLYING_DECIMALS,
             StocklanaError::BadMintDecimals
         );
         require!(max_staleness_secs > 0, StocklanaError::StaleOracle);

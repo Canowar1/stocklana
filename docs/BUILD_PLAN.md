@@ -2,7 +2,7 @@
 
 Companion to the Build Contract. Everything below is either a **verified fact** (probed today, with the command to reproduce it) or a **decision** that supersedes an open point in the contract. Anything still open is listed in §8 with a default.
 
-Probed: 13 September 2026, ~20:25 UTC. Deadline: 18 September 2026, 16:00 ET — **~4 days 20 hours**.
+Probed: 13 September 2026, ~20:25 UTC. Deadline: **25 September 2026, 16:00 ET**, extended from 18 September.
 
 ---
 

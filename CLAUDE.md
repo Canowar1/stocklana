@@ -1,6 +1,6 @@
 # Stocklana
 
-A two-sided market where holders of tokenized equity on Solana write covered calls against idle positions, and any wallet can bid USDC premium for capped, non-liquidatable upside. Solana Foundation hackathon, deadline 18 September 2026 16:00 ET.
+A two-sided market where holders of tokenized equity on Solana write covered calls against idle positions, and any wallet can bid USDC premium for capped, non-liquidatable upside. Solana Foundation hackathon, deadline 25 September 2026 16:00 ET (extended from 18 September).
 
 ## Read these first, in order
 

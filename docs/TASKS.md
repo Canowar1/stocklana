@@ -2,14 +2,16 @@
 
 Stable task ids. Any environment or session can pick this up, find the first unchecked box, and continue. Update the status line at the top of the block when you finish one.
 
-**Deadline** 18 Sep 2026 16:00 ET. **Assets 5 to 7 deadline** 18 Sep 08:00 ET.
-**Status** Blocks A through E are done. The program is written, builds, and the full lifecycle passes on a mainnet fork against the real TSLAx mint and the real Pyth account. Next: Block F, which is the first thing that needs a funded deployer.
+**Deadline** 25 Sep 2026 16:00 ET, extended from 18 Sep. **Assets 5 to 7 deadline** 25 Sep 04:00 ET.
+**Status** Blocks A through E are done, and the deployment path is wired and proven on the fork. `./scripts/preflight.sh`, `./scripts/deploy.sh` and `./scripts/setup-markets.sh` are driven entirely by `.env`. Next: a funded devnet deployer, then Block F.
+
+The deadline moved from 18 to 25 September. Nine days instead of two changes what is worth building; see the reopened scope note at the bottom.
 
 Legend: `[ ]` open, `[x]` done, `[~]` in progress, `[-]` cut.
 
 ---
 
-## Block A — Ground. Target: tonight, 13 Sep
+## Block A — Ground. Done 14 Sep
 
 Gate: `anchor build` succeeds and a local validator boots with the real TSLAx mint visible. **Build gate passed**, `target/deploy/stocklana.so` is 190,760 bytes. Two toolchain traps were hit and are documented in `CLAUDE.md`: a root-owned `~/.cache` and `edition2024` dependencies against the 1.84 platform-tools cargo. Always build with `./scripts/build.sh`.
 
@@ -20,7 +22,7 @@ Gate: `anchor build` succeeds and a local validator boots with the real TSLAx mi
 - [x] **A5** Fork script `scripts/fork.sh` with the `solana-test-validator --clone` line from `BUILD_PLAN.md` §4. Confirm the cloned TSLAx mint shows its extensions under `spl-token display`.
 - [x] **A6** Run `docs/verify_constants.sh` once and commit the output as `docs/probe-YYYYMMDD.txt`. Every number in the plan should be re-derivable, not remembered.
 
-## Block B — Collateral. Target: 14 Sep morning
+## Block B — Collateral. Done 14 Sep
 
 Gate: a locked position exists on the fork and the writer can get it back. **Passed.**
 
@@ -41,7 +43,7 @@ Gate: the program prints the live TSLAX price, read from the real Pyth account, 
 - [x] **C4** Test reading the cloned `GpoWLTd6…` account on the fork and the live `7UVim…` SOL/USD account on devnet. Both paths, same code.
 - [x] **C5** **Decision point resolved: no cut needed.** C4 passed on the first night, so Block D shipped in full as an escrowed-bid book.
 
-## Block D — The market. Target: 15 Sep
+## Block D — The market. Done 14 Sep
 
 Gate: premium lands with the writer and losing bidders get their money back. **Passed**, 40 USDC premium, 0.2 USDC fee at 50 bps, losing 25 USDC bid refunded in full.
 
@@ -52,7 +54,7 @@ Gate: premium lands with the writer and losing bidders get their money back. **P
 - [x] **D5** Test: two bidders compete, the writer accepts one, the loser is made whole.
 - [x] **D6** Fee is in the program from this block, even at zero bps. It is the day-31 answer and retrofitting it later touches every account.
 
-## Block E — Settlement. Target: 16 Sep
+## Block E — Settlement. Done 14 Sep
 
 Gate: the full lifecycle passes in one test file, in the money and out of the money. **Passed**, 6 integration tests and 7 unit tests. Run them with `yarn test:fork` and `yarn test:unit`.
 
@@ -64,7 +66,7 @@ Gate: the full lifecycle passes in one test file, in the money and out of the mo
 - [x] **E6** End-to-end test, out of the money: assert the buyer gets nothing and the writer gets everything back.
 - [x] **E7** Same two tests on the mainnet fork against the real TSLAx mint and the real oracle account.
 
-## Block F — Front end and deployment. Target: 17 Sep
+## Block F — Front end and deployment. Target: 18 to 22 Sep
 
 Gate: a stranger with a wallet can complete the path on devnet without being told anything. **Blocked on a funded deployer.** Everything before this block runs locally and needs no SOL.
 
@@ -78,7 +80,7 @@ Gate: a stranger with a wallet can complete the path on devnet without being tol
 - [ ] **F8** Surface the oracle publish time, the confidence interval, and any pending multiplier change on the position card.
 - [ ] **F9** Deploy the program to devnet, deploy the front end, confirm the Demo URL works from a browser that has never seen it.
 
-## Block G — Submission. **Hard deadline 18 Sep 08:00 ET**
+## Block G — Submission. **Hard deadline 25 Sep 04:00 ET**
 
 - [ ] **G1** README. Open with the four judged items. Disclose every mock: the mirrored devnet price, the replica mint, the seeded counterparty, the time compression at expiry.
 - [ ] **G2** Disclose reused components: Anchor, Pyth receiver, SPL Token-2022, the xStocks public API, Jupiter Price v3.
@@ -107,3 +109,16 @@ The demo survives all four. It does not survive cutting `settle`, the staleness 
 - [ ] Project name, needed for G5.
 - [ ] The real user, named, with the moment. `BUILD_PLAN.md` §9 has a draft to correct.
 - [ ] Whether any funded mainnet wallet exists. Default is no, and nothing deploys to mainnet.
+
+---
+
+## Reopened by the deadline extension
+
+Nine days instead of two. These were cut for time and are now affordable. They are listed in the order they earn their keep, and none of them precedes a working Block F.
+
+- [ ] **R1** The Pyth settlement-basis panel from `docs/SIDE_TRACKS.md`. Shows the settlement feed's publish time and confidence beside the equity reference feed, and says "reference stale" instead of drawing a fake basis. Roughly two hours, and it is what the Pyth track is judged on.
+- [ ] **R2** Register all fourteen mainnet markets in the UI as a browsable list, with the twelve that are mainnet-only clearly marked. `config/markets.mainnet.json` already holds them.
+- [ ] **R3** A second devnet market on the replica equity mint, so the demo shows both a zero-mock oracle path (SOL/USD) and the equity path side by side.
+- [ ] **R4** A real mainnet deployment with one small position, if the user chooses to fund it. Decided separately; `scripts/deploy.sh` refuses mainnet by design.
+
+Still not in scope, extension or no extension: a token, a bonding curve, strike ladders, term structure, rollover, governance, a portfolio view, mobile.

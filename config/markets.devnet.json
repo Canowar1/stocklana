@@ -1,0 +1,16 @@
+{
+  "_note": "Markets registered on devnet. SOL/USD is the only Pyth feed that is genuinely live on devnet, so it is the market with zero mocks in the price path. The equity markets need the replica mint and the price mirror from BUILD_PLAN.md section 4 and are added once those exist.",
+  "premiumMint": "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr",
+  "_premiumMintNote": "devnet USDC faucet mint",
+  "markets": [
+    {
+      "symbol": "SOL",
+      "label": "Wrapped SOL / USD",
+      "underlyingMint": "So11111111111111111111111111111111111111112",
+      "feedAccount": "7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE",
+      "feedId": "ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d",
+      "maxStalenessSecs": 300,
+      "mocks": "none"
+    }
+  ]
+}

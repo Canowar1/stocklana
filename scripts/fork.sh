@@ -19,5 +19,5 @@ exec solana-test-validator --reset --quiet \
   --account EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v fixtures/mint-usdc.json \
   --account GpoWLTd6GoisYxYgHz7mTcZvgnfJu4SN7T6PxWjgUTFY fixtures/oracle-tslax_feed.json \
   --account 6TPsjFigUaMFanRCsxQ4WbmG215xhRBXsb5y5Cn5L6eE fixtures/oracle-nvdax_feed.json \
-  --bpf-program EZRD9fkVxxQy97Ls35vDsnhQ1Tn8b6HagWeXV8GyqgNQ target/deploy/stocklana.so \
+  \
   "$@"

@@ -1,0 +1,132 @@
+{
+ "_note": "The fourteen xStocks with a live on-chain Pyth push feed. Feed accounts are derived as findProgramAddress([u16_le(0), feed_id], pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT) and verified in docs/feed_accounts.json.",
+ "premiumMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+ "markets": [
+  {
+   "symbol": "AAPLx",
+   "label": "AAPLx / USD",
+   "underlyingMint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+   "feedAccount": "Gs4DVtiGSJ9LJvXaQFjYp6vhLNK2QsH4qWox2ck1kuMp",
+   "feedId": "978e6cc68a119ce066aa830017318563a9ed04ec3a0a6439010fc11296a58675",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  },
+  {
+   "symbol": "COINx",
+   "label": "COINx / USD",
+   "underlyingMint": "Xs7ZdzSHLU9ftNJsii5fCeJhoRWSC32SQGzGQtePxNu",
+   "feedAccount": "6aCwE8Gu4vCY14BUYUsvPQgKNP3ELaBgaMcc3QdtG4c4",
+   "feedId": "641435d5dffb5311140b480517c79986d8488d5cf08a11eec53b83ad02cab33f",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  },
+  {
+   "symbol": "CRCLx",
+   "label": "CRCLx / USD",
+   "underlyingMint": "XsueG8BtpquVJX9LVLLEGuViXUungE6WmK5YZ3p3bd1",
+   "feedAccount": "8gfVVaN5jZVGGAYs11TNptaAbL851mTSt6eCoKaUL5CR",
+   "feedId": "c13184461c0c80d98ffcd89be627c2220b94a96c7c67f0c4b16bc12fd3b17758",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  },
+  {
+   "symbol": "GLDx",
+   "label": "GLDx / USD",
+   "underlyingMint": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+   "feedAccount": "FMGx9GMRAsAnFciE4HPHSMoWVZ6UgzmFJZ1nXdKVGH6e",
+   "feedId": "e7d1138d0083368634087268c64b7bea0b4101a6365f83915cba9e76a8364b96",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  },
+  {
+   "symbol": "GOOGLx",
+   "label": "GOOGLx / USD",
+   "underlyingMint": "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN",
+   "feedAccount": "HeLrriTGigH3g9qgzZTpkWWkYe1yXKgE6nA7YdBjsvva",
+   "feedId": "b911b0329028cd0283e4259c33809d62942bd2716a58084e5f31d64c00b5424e",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  },
+  {
+   "symbol": "HOODx",
+   "label": "HOODx / USD",
+   "underlyingMint": "XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg",
+   "feedAccount": "EC93PJ3KRj7PSwLXHR1Kh6znNNLyNSUQ26NTtUarUkFe",
+   "feedId": "dd49a9ac6df5cbfa9d8fc6371f7ae927a74d5c6763c1c01b4220d70314c647f9",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  },
+  {
+   "symbol": "MCDx",
+   "label": "MCDx / USD",
+   "underlyingMint": "XsqE9cRRpzxcGKDXj1BJ7Xmg4GRhZoyY1KpmGSxAWT2",
+   "feedAccount": "9Cvyi5y1aR2nhNbkeFoe8VNQXgoL9dBMrpUsx9iqVnrP",
+   "feedId": "27cac3c00ed32285b8686611bbc4a654279c1ea11ab4dc90822c2edd20734bca",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  },
+  {
+   "symbol": "METAx",
+   "label": "METAx / USD",
+   "underlyingMint": "Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu",
+   "feedAccount": "HmqkFx31Jk1STgqVfxYAz6pKtwgn9mXZdNZfWnu6sqWS",
+   "feedId": "bf3e5871be3f80ab7a4d1f1fd039145179fb58569e159aee1ccd472868ea5900",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  },
+  {
+   "symbol": "MSTRx",
+   "label": "MSTRx / USD",
+   "underlyingMint": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+   "feedAccount": "C1AgDTF3hG9a23cGrCZcDhTFNzZuJ5BxYmVwwESP1Da1",
+   "feedId": "53f95ba4e23ed15ea56083e2ee9a5eec48055d6f59033d4bb95f1ca2a2349c28",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  },
+  {
+   "symbol": "NFLXx",
+   "label": "NFLXx / USD",
+   "underlyingMint": "XsEH7wWfJJu2ZT3UCFeVfALnVA6CP5ur7Ee11KmzVpL",
+   "feedAccount": "FUqSvECa7qTFsn8QncA5MHpohUfz227295LFvVj5AWFh",
+   "feedId": "02a67e6184e6c9dd65e14745a2a80df8b2b3d2ca91b4b191404936003d9929ae",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  },
+  {
+   "symbol": "NVDAx",
+   "label": "NVDAx / USD",
+   "underlyingMint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+   "feedAccount": "6TPsjFigUaMFanRCsxQ4WbmG215xhRBXsb5y5Cn5L6eE",
+   "feedId": "4244d07890e4610f46bbde67de8f43a4bf8b569eebe904f136b469f148503b7f",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  },
+  {
+   "symbol": "QQQx",
+   "label": "QQQx / USD",
+   "underlyingMint": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+   "feedAccount": "BRZ4SSorCG3DQ1KLgTPu7TYmQWsxa8ghqz2BAfDzs6a3",
+   "feedId": "178a6f73a5aede9d0d682e86b0047c9f333ed0efe5c6537ca937565219c4054d",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  },
+  {
+   "symbol": "SPYx",
+   "label": "SPYx / USD",
+   "underlyingMint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+   "feedAccount": "jf8MarLKgBte4f3NWufbNpGRCuBfJLhuZPuFigvSQR2",
+   "feedId": "2817b78438c769357182c04346fddaad1178c82f4048828fe0997c3c64624e14",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  },
+  {
+   "symbol": "TSLAx",
+   "label": "TSLAx / USD",
+   "underlyingMint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+   "feedAccount": "GpoWLTd6GoisYxYgHz7mTcZvgnfJu4SN7T6PxWjgUTFY",
+   "feedId": "47a156470288850a440df3a6ce85a55917b813a19bb5b31128a33a986566a362",
+   "maxStalenessSecs": 3600,
+   "mocks": "none"
+  }
+ ]
+}
