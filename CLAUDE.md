@@ -70,3 +70,24 @@ The next block needs a funded deployer keypair, which the user supplies. Local
 work uses `keys/localnet-payer.json`, a throwaway. `~/.config/solana/id.json`
 exists on this machine but the user does not recognise it, so it is not the
 deployer and must not be used or modified.
+
+## Deployment
+
+Everything is driven by `.env`. Copy `.env.example` and fill it in.
+
+```
+./scripts/preflight.sh      # checks cluster, deployer balance, program id, build. Spends nothing.
+./scripts/deploy.sh         # build, deploy, register config and markets
+./scripts/setup-markets.sh  # re-register markets only, idempotent
+```
+
+Markets live in `config/markets.<cluster>.json`. Mainnet holds all fourteen
+xStocks with a live on-chain Pyth feed. Devnet holds SOL/USD, the only feed
+genuinely live there, so it is the market with no mock in the price path.
+
+No private key is ever read from an environment variable. `.env` points at
+keypair *files*, and `keys/` is gitignored. `scripts/deploy.sh` refuses to
+target mainnet; that is a deliberate manual step.
+
+If the program keypair is replaced, run `./scripts/sync-program-id.sh` to
+rewrite `declare_id!` and `Anchor.toml`, then rebuild.
