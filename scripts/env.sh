@@ -6,7 +6,17 @@
 # Reads .env, applies defaults, resolves the RPC endpoint for CLUSTER and
 # exports the ANCHOR_* variables the Anchor client expects.
 
-_repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Find the repo root by walking up for Anchor.toml. Script-path tricks are not
+# portable: BASH_SOURCE does not exist in zsh, and this file is sourced from
+# both an interactive zsh and the bash scripts in this directory.
+_repo="$PWD"
+while [ "$_repo" != "/" ] && [ ! -f "$_repo/Anchor.toml" ]; do
+  _repo="$(dirname "$_repo")"
+done
+if [ ! -f "$_repo/Anchor.toml" ]; then
+  echo "env.sh: run this from inside the Stocklana repo" >&2
+  return 1 2>/dev/null || exit 1
+fi
 cd "$_repo"
 export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
 
