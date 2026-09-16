@@ -217,10 +217,20 @@ pub mod stocklana {
     }
 
     /// The writer takes one bid. Premium settles immediately, minus the fee.
+    ///
+    /// Acceptance must happen before expiry. Without that check the writer
+    /// holds a free option on the bid itself: wait until expiry, see where the
+    /// price landed, and accept only when the call has already expired
+    /// worthless. The bidder paid for time value that no longer exists, and
+    /// the selection costs the writer nothing.
     pub fn accept_bid(ctx: Context<AcceptBid>) -> Result<()> {
         require!(
             ctx.accounts.offer.state == OfferState::Open,
             StocklanaError::BadOfferState
+        );
+        require!(
+            Clock::get()?.unix_timestamp < ctx.accounts.offer.expiry_ts,
+            StocklanaError::OfferExpired
         );
         require!(
             ctx.accounts.bid.state == BidState::Active,
@@ -477,14 +487,22 @@ pub mod stocklana {
         Ok(())
     }
 
-    /// Returns collateral to the writer when the offer expired without a buyer.
+    /// Returns collateral to the writer for an offer nobody bought.
+    ///
+    /// Deliberately not gated on expiry. `Open` already means no bid was
+    /// accepted and therefore no premium was taken and no counterparty exists,
+    /// so there is nobody to harm by withdrawing. Requiring expiry would lock a
+    /// writer's collateral for the full term of an offer that never sold,
+    /// which is a month of dead capital for a month-dated call that got no
+    /// bids in its first hour.
+    ///
+    /// Bidders whose escrow is still active are unaffected: once the offer
+    /// leaves `Open`, `refund_bid` lets them withdraw.
     pub fn reclaim(ctx: Context<Reclaim>) -> Result<()> {
         require!(
             ctx.accounts.offer.state == OfferState::Open,
             StocklanaError::BadOfferState
         );
-        let now = Clock::get()?.unix_timestamp;
-        require!(now >= ctx.accounts.offer.expiry_ts, StocklanaError::NotExpired);
         mint_ext::require_not_paused(&ctx.accounts.underlying_mint.to_account_info())?;
 
         let offer_key = ctx.accounts.offer.key();

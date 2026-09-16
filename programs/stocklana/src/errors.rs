@@ -16,6 +16,8 @@ pub enum StocklanaError {
     OracleConfidenceTooWide,
     #[msg("Offer has not reached its expiry yet")]
     NotExpired,
+    #[msg("Offer has already expired")]
+    OfferExpired,
     #[msg("Offer is not in the required state for this instruction")]
     BadOfferState,
     #[msg("Bid is not in the required state for this instruction")]

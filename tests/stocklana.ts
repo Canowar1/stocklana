@@ -268,8 +268,10 @@ describe("stocklana", () => {
     assert.equal(await bal(writerTslax, TOKEN_2022_PROGRAM_ID), before + 5e8);
   });
 
-  it("lets the writer reclaim collateral when no bid was accepted", async () => {
-    const expiry = (await chainTime()) + 4;
+  it("lets the writer reclaim an unsold offer without waiting for expiry", async () => {
+    // A long-dated offer nobody bid on. Requiring expiry here would lock the
+    // collateral for the whole term.
+    const expiry = (await chainTime()) + 3600;
     const offer = offerPda(3), vault = vaultPda(offer);
 
     await program.methods.writeCall(new BN(RUN * 10 + 3), E8(4), E8(oraclePrice), new BN(expiry), E6(1))
@@ -279,7 +281,7 @@ describe("stocklana", () => {
       .signers([writer]).rpc();
 
     const before = await bal(writerTslax, TOKEN_2022_PROGRAM_ID);
-    await waitUntil(expiry);
+    assert.isBelow(await chainTime(), expiry, "this must run well before expiry");
 
     await program.methods.reclaim()
       .accountsPartial({ writer: writer.publicKey, market, offer, underlyingMint: TSLAX,
@@ -288,6 +290,50 @@ describe("stocklana", () => {
 
     assert.equal(await bal(writerTslax, TOKEN_2022_PROGRAM_ID), before + 4e8);
     assert.isNull(await conn.getAccountInfo(vault), "vault should be closed after reclaim");
+  });
+
+  it("refuses to accept a bid after expiry", async () => {
+    // Otherwise the writer holds a free option on the bid: wait, see where the
+    // price landed, and accept only when the call is already worthless.
+    const expiry = (await chainTime()) + 4;
+    const offer = offerPda(4), vault = vaultPda(offer);
+
+    await program.methods.writeCall(new BN(RUN * 10 + 4), E8(3), E8(oraclePrice * 0.9), new BN(expiry), E6(1))
+      .accountsPartial({ writer: writer.publicKey, config, market, underlyingMint: TSLAX,
+        offer, vault, writerTokenAccount: writerTslax,
+        tokenProgram: TOKEN_2022_PROGRAM_ID, systemProgram: SystemProgram.programId })
+      .signers([writer]).rpc();
+
+    await program.methods.placeBid(E6(5))
+      .accountsPartial({ bidder: alice.publicKey, market, offer, premiumMint: USDC,
+        bid: bidPda(offer, alice.publicKey), bidVault: bidVaultPda(offer, alice.publicKey),
+        bidderTokenAccount: aliceUsdc, premiumTokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId })
+      .signers([alice]).rpc();
+
+    await waitUntil(expiry);
+
+    try {
+      await program.methods.acceptBid()
+        .accountsPartial({ writer: writer.publicKey, config, market, offer,
+          bid: bidPda(offer, alice.publicKey), bidVault: bidVaultPda(offer, alice.publicKey),
+          premiumMint: USDC, writerPremiumAccount: writerUsdc, feeDestination: feeDest,
+          premiumTokenProgram: TOKEN_PROGRAM_ID })
+        .signers([writer]).rpc();
+      assert.fail("accepting after expiry should be refused");
+    } catch (e: any) {
+      assert.include(e.toString(), "OfferExpired");
+    }
+
+    // The bidder is not stranded by the refusal.
+    const before = await bal(aliceUsdc, TOKEN_PROGRAM_ID);
+    await program.methods.refundBid()
+      .accountsPartial({ bidder: alice.publicKey, market, offer,
+        bid: bidPda(offer, alice.publicKey), bidVault: bidVaultPda(offer, alice.publicKey),
+        premiumMint: USDC, bidderTokenAccount: aliceUsdc,
+        premiumTokenProgram: TOKEN_PROGRAM_ID })
+      .signers([alice]).rpc();
+    assert.equal(await bal(aliceUsdc, TOKEN_PROGRAM_ID), before + 5e6);
   });
 
   it("refuses to settle on a stale oracle", async () => {
