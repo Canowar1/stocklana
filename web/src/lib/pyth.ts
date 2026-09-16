@@ -21,8 +21,11 @@ export type OracleRead = {
   conf: bigint;
   exponent: number;
   publishTime: number;
-  /** True when the receiver program does not own the account. */
-  untrustedOwner: boolean;
+  /** Whoever actually owns the account. Compared against the owner the market
+   *  recorded at registration, which is what the program checks. */
+  owner: string;
+  /** True when that owner is not the Pyth receiver, i.e. this is a mirror. */
+  isMirror: boolean;
 };
 
 export function decodePriceUpdate(data: Buffer, owner: PublicKey): OracleRead | null {
@@ -33,7 +36,8 @@ export function decodePriceUpdate(data: Buffer, owner: PublicKey): OracleRead | 
     conf: data.readBigUInt64LE(OFF_CONF),
     exponent: data.readInt32LE(OFF_EXPO),
     publishTime: Number(data.readBigInt64LE(OFF_PUBLISH)),
-    untrustedOwner: !owner.equals(PYTH_RECEIVER),
+    owner: owner.toBase58(),
+    isMirror: !owner.equals(PYTH_RECEIVER),
   };
 }
 
@@ -48,24 +52,36 @@ export async function readOracles(
   );
 }
 
-/** How the program judges a price, mirrored so the UI can warn before a click. */
+/**
+ * The same judgement the program makes, so the interface can warn before a
+ * click rather than after a failed transaction.
+ *
+ * Owner is checked against `expectedOwner`, which is what the market recorded
+ * when it was registered. A mirrored feed has a different owner than the Pyth
+ * receiver and is still perfectly settleable; being a mirror is a disclosure,
+ * not a fault. What would be a fault is the owner having changed since
+ * registration, and that is what this catches.
+ */
 export function oracleStatus(
   read: OracleRead | null,
   nowUnix: number,
   maxStalenessSecs: number,
   maxConfBps: number,
-): { ok: boolean; reason: string | null; ageSecs: number; confBps: number } {
-  if (!read) return { ok: false, reason: "Feed account not found", ageSecs: 0, confBps: 0 };
+  expectedOwner?: string,
+): { ok: boolean; reason: string | null; ageSecs: number; confBps: number; isMirror: boolean } {
+  if (!read)
+    return { ok: false, reason: "Feed account not found", ageSecs: 0, confBps: 0, isMirror: false };
   const ageSecs = nowUnix - read.publishTime;
   const confBps = read.price > 0n ? Number((read.conf * 10_000n) / read.price) : 0;
-  if (read.untrustedOwner)
-    return { ok: false, reason: "Account is not owned by the Pyth receiver", ageSecs, confBps };
+  const base = { ageSecs, confBps, isMirror: read.isMirror };
+  if (expectedOwner && read.owner !== expectedOwner)
+    return { ok: false, reason: "The feed account changed owner since this market was registered", ...base };
   if (read.exponent !== -8)
-    return { ok: false, reason: `Exponent is ${read.exponent}, expected -8`, ageSecs, confBps };
-  if (read.price <= 0n) return { ok: false, reason: "Price is not positive", ageSecs, confBps };
+    return { ok: false, reason: `Exponent is ${read.exponent}, expected -8`, ...base };
+  if (read.price <= 0n) return { ok: false, reason: "Price is not positive", ...base };
   if (ageSecs > maxStalenessSecs)
-    return { ok: false, reason: `Print is older than the ${maxStalenessSecs}s limit`, ageSecs, confBps };
+    return { ok: false, reason: `Print is older than the ${maxStalenessSecs}s limit`, ...base };
   if (maxConfBps > 0 && confBps > maxConfBps)
-    return { ok: false, reason: `Confidence band is ${confBps} bps, limit is ${maxConfBps}`, ageSecs, confBps };
-  return { ok: true, reason: null, ageSecs, confBps };
+    return { ok: false, reason: `Confidence band is ${confBps} bps, limit is ${maxConfBps}`, ...base };
+  return { ok: true, reason: null, ...base };
 }

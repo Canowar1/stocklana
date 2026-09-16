@@ -34,15 +34,22 @@ pub struct OraclePrice {
     pub publish_time: i64,
 }
 
-/// Reads a Pyth `PriceUpdateV2` account and enforces owner, feed, exponent,
-/// sign and staleness. Returns the price scaled by 1e8.
+/// Reads a `PriceUpdateV2` account and enforces owner, feed, exponent, sign and
+/// staleness. Returns the price scaled by 1e8.
+///
+/// The expected owner is passed in rather than hardcoded, because it is a
+/// property of the market and is recorded when the market is registered. That
+/// is not a relaxation: the check is still exact, it is still on every read,
+/// and a market whose feed is not owned by the Pyth receiver is visible as such
+/// on-chain instead of being hidden behind a build flag.
 pub fn read_price(
     account: &AccountInfo,
+    expected_owner: &Pubkey,
     expected_feed_id: &[u8; 32],
     max_staleness_secs: u32,
     now: i64,
 ) -> Result<OraclePrice> {
-    require_keys_eq!(*account.owner, PYTH_RECEIVER, StocklanaError::BadOracleOwner);
+    require_keys_eq!(*account.owner, *expected_owner, StocklanaError::BadOracleOwner);
 
     let data = account.try_borrow_data()?;
     require!(data.len() >= MIN_LEN, StocklanaError::WrongFeed);

@@ -2,17 +2,22 @@
 
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { PublicKey } from "@solana/web3.js";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { MarketConfig } from "@/lib/config";
-import { formatUsd } from "@/lib/format";
+import { formatUsd, formatAmount } from "@/lib/format";
+import { useProgram } from "@/lib/program";
+import { useTokenBalance } from "@/lib/useBalance";
+import { writeCall, readableError } from "@/lib/actions";
 import { Field, Input, Button, Card } from "./ui";
 import { IconWarning } from "./icons";
+import { TxFeedback, TxState } from "./TxFeedback";
 
 const WalletButton = dynamic(
   () => import("@solana/wallet-adapter-react-ui").then((m) => m.WalletMultiButton),
   { ssr: false, loading: () => <div className="h-11 w-36 rounded-lg bg-bg-tertiary" /> },
 );
 
-/** Market hours in New York, where the equity feeds actually print. */
 const MARKET_OPEN_UTC = 13 * 60 + 30;
 const MARKET_CLOSE_UTC = 20 * 60;
 
@@ -23,14 +28,32 @@ function isUsMarketHours(d: Date) {
   return mins >= MARKET_OPEN_UTC && mins <= MARKET_CLOSE_UTC;
 }
 
-export function WriteCallForm({ market, oraclePrice, connected }: {
-  market: MarketConfig; oraclePrice: bigint | null; connected: boolean;
+function toBaseUnits(value: string, decimals: number): bigint | null {
+  if (!/^\d*\.?\d*$/.test(value.trim()) || value.trim() === "") return null;
+  const [whole = "0", frac = ""] = value.trim().split(".");
+  if (frac.length > decimals) return null;
+  return BigInt(whole || "0") * 10n ** BigInt(decimals) + BigInt((frac || "0").padEnd(decimals, "0"));
+}
+
+export function WriteCallForm({ market, marketAddress, oraclePrice, onWritten }: {
+  market: MarketConfig;
+  marketAddress: string | null;
+  oraclePrice: bigint | null;
+  onWritten: () => void;
 }) {
+  const { connected, publicKey } = useWallet();
+  const program = useProgram();
+  const { balance } = useTokenBalance(market.underlyingMint);
+  const { balance: premiumBalance } = useTokenBalance(undefined);
+
   const spot = oraclePrice ? Number(oraclePrice) / 1e8 : null;
   const [size, setSize] = useState("");
   const [strike, setStrike] = useState("");
   const [expiry, setExpiry] = useState("");
   const [minPremium, setMinPremium] = useState("");
+  const [tx, setTx] = useState<TxState>({ kind: "idle" });
+
+  const decimals = balance?.decimals ?? 8;
 
   const moneyness = useMemo(() => {
     const k = parseFloat(strike);
@@ -39,13 +62,46 @@ export function WriteCallForm({ market, oraclePrice, connected }: {
   }, [strike, spot]);
 
   const expiryDate = expiry ? new Date(expiry) : null;
-  const expiryOutsideHours =
-    expiryDate && !Number.isNaN(expiryDate.valueOf()) && !isUsMarketHours(expiryDate);
+  const expiryValid = expiryDate && !Number.isNaN(expiryDate.valueOf());
+  const expiryOutsideHours = expiryValid && !isUsMarketHours(expiryDate!);
+  const expiryInPast = expiryValid && expiryDate!.getTime() <= Date.now();
 
-  const maxPayout = useMemo(() => {
-    const n = parseFloat(size);
-    return Number.isFinite(n) && n > 0 ? n : null;
-  }, [size]);
+  const sizeUnits = toBaseUnits(size, decimals);
+  const overBalance = sizeUnits !== null && balance !== null && sizeUnits > balance.raw;
+  const sizeNumber = parseFloat(size);
+
+  const canSubmit =
+    !!program && !!publicKey && !!marketAddress &&
+    sizeUnits !== null && sizeUnits > 0n && !overBalance &&
+    parseFloat(strike) > 0 && !!expiryValid && !expiryInPast &&
+    tx.kind !== "signing" && tx.kind !== "confirming";
+
+  async function submit() {
+    if (!program || !publicKey || !marketAddress) return;
+    const collateral = toBaseUnits(size, decimals);
+    const strikeScaled = toBaseUnits(strike, 8);
+    const premium = toBaseUnits(minPremium || "0", 6);
+    if (collateral === null || strikeScaled === null || premium === null || !expiryDate) return;
+
+    setTx({ kind: "signing" });
+    try {
+      const signature = await writeCall({
+        program, writer: publicKey,
+        marketAddress: new PublicKey(marketAddress),
+        underlyingMint: new PublicKey(market.underlyingMint),
+        collateralAmount: collateral, strikeUsd: strikeScaled,
+        expiryTs: Math.floor(expiryDate.getTime() / 1000), minPremium: premium,
+      });
+      setTx({
+        kind: "done", signature,
+        message: `Locked ${size} ${market.symbol}. The offer is now in the book for anyone to bid on.`,
+      });
+      setSize(""); setStrike(""); setExpiry(""); setMinPremium("");
+      onWritten();
+    } catch (e) {
+      setTx({ kind: "error", message: readableError(e) });
+    }
+  }
 
   return (
     <div className="space-y-5 px-5 py-5">
@@ -57,7 +113,12 @@ export function WriteCallForm({ market, oraclePrice, connected }: {
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           label={`Size (${market.symbol})`} htmlFor="size"
-          hint="Locked in the vault until settlement or expiry"
+          error={overBalance ? "More than your balance" : undefined}
+          hint={
+            balance
+              ? `Balance ${formatAmount(balance.raw, balance.decimals)}`
+              : connected ? "No balance on this network" : "Locked until settlement or expiry"
+          }
         >
           <Input id="size" inputMode="decimal" placeholder="10.00000000"
             value={size} onChange={(e) => setSize(e.target.value)} />
@@ -78,7 +139,11 @@ export function WriteCallForm({ market, oraclePrice, connected }: {
 
         <Field
           label="Expiry" htmlFor="expiry"
-          error={expiryOutsideHours ? "Outside US market hours, when the feed does not print" : undefined}
+          error={
+            expiryInPast ? "Expiry is already in the past"
+            : expiryOutsideHours ? "Outside US market hours, when the feed does not print"
+            : undefined
+          }
           hint="Weekdays 13:30 to 20:00 UTC"
         >
           <Input id="expiry" type="datetime-local"
@@ -94,27 +159,20 @@ export function WriteCallForm({ market, oraclePrice, connected }: {
         </Field>
       </div>
 
-      {/* What the writer is actually agreeing to, before they sign, rather than
-          after. */}
-      {maxPayout !== null && (
+      {Number.isFinite(sizeNumber) && sizeNumber > 0 && (
         <Card className="space-y-2 bg-bg-tertiary px-4 py-3 text-xs">
           <p className="font-medium text-ink-primary">What you are agreeing to</p>
           <ul className="space-y-1.5 text-ink-secondary">
             <li>
-              Above your strike, the buyer takes a share of the position. The most they can ever
+              Above your strike the buyer takes a share of the position. The most they can ever
               receive is{" "}
               <span className="tnum text-ink-primary">
-                {maxPayout.toLocaleString("en-US")} {market.symbol}
+                {sizeNumber.toLocaleString("en-US")} {market.symbol}
               </span>
               , and only as the price approaches infinity.
             </li>
-            <li>
-              Below your strike, you keep the entire position and the premium.
-            </li>
-            <li>
-              There is no liquidation price. Your collateral covers every outcome by
-              construction.
-            </li>
+            <li>Below your strike you keep the entire position and the premium.</li>
+            <li>There is no liquidation price. Your collateral covers every outcome.</li>
           </ul>
         </Card>
       )}
@@ -129,12 +187,11 @@ export function WriteCallForm({ market, oraclePrice, connected }: {
         </div>
       )}
 
+      <TxFeedback state={tx} />
+
       {connected ? (
-        <Button
-          disabled={!size || !strike || !expiry || !!expiryOutsideHours}
-          className="w-full sm:w-auto"
-        >
-          Review and lock collateral
+        <Button disabled={!canSubmit} onClick={submit} className="w-full sm:w-auto">
+          {tx.kind === "signing" || tx.kind === "confirming" ? "Locking collateral" : "Lock collateral and write"}
         </Button>
       ) : (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">

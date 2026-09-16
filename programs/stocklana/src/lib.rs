@@ -73,13 +73,15 @@ pub mod stocklana {
         // waived here: a market for an equity may legitimately be registered
         // over a weekend, when the feed is 32 hours old.
         let now = Clock::get()?.unix_timestamp;
-        let _ = oracle::read_price(&ctx.accounts.feed_account, &feed_id, u32::MAX, now)?;
+        let feed_owner = *ctx.accounts.feed_account.owner;
+        let _ = oracle::read_price(&ctx.accounts.feed_account, &feed_owner, &feed_id, u32::MAX, now)?;
 
         let m = &mut ctx.accounts.market;
         m.underlying_mint = ctx.accounts.underlying_mint.key();
         m.premium_mint = ctx.accounts.premium_mint.key();
         m.feed_account = ctx.accounts.feed_account.key();
         m.feed_id = feed_id;
+        m.feed_owner = feed_owner;
         m.max_staleness_secs = max_staleness_secs;
         m.max_conf_bps = max_conf_bps;
         m.open_offers = 0;
@@ -340,6 +342,7 @@ pub mod stocklana {
         let market = &ctx.accounts.market;
         let price = oracle::read_price(
             &ctx.accounts.feed_account,
+            &market.feed_owner,
             &market.feed_id,
             market.max_staleness_secs,
             now,

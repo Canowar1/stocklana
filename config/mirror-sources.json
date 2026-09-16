@@ -1,0 +1,15 @@
+{
+ "_note": "Mainnet Pyth accounts the devnet mirror copies. Derived as findProgramAddress([u16_le(0), feed_id], pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT) and verified live; see docs/feed_accounts.json.",
+ "sources": [
+  {
+   "symbol": "TSLAx",
+   "account": "GpoWLTd6GoisYxYgHz7mTcZvgnfJu4SN7T6PxWjgUTFY",
+   "feedId": "47a156470288850a440df3a6ce85a55917b813a19bb5b31128a33a986566a362"
+  },
+  {
+   "symbol": "NVDAx",
+   "account": "6TPsjFigUaMFanRCsxQ4WbmG215xhRBXsb5y5Cn5L6eE",
+   "feedId": "4244d07890e4610f46bbde67de8f43a4bf8b569eebe904f136b469f148503b7f"
+  }
+ ]
+}

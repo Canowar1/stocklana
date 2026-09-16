@@ -12,6 +12,26 @@
    "maxStalenessSecs": 300,
    "mocks": "none",
    "maxConfBps": 100
+  },
+  {
+   "symbol": "TSLAx",
+   "label": "Tesla xStock / USD",
+   "underlyingMint": "9qXMq4BbLzwxgzWdPqStEWPLvkHTrYDcTfyZ59LEbgRt",
+   "feedAccount": "rBUHc4sSaDpAAx3SXsmDrhABnUpc7sA62SSbhMbdmxb",
+   "feedId": "47a156470288850a440df3a6ce85a55917b813a19bb5b31128a33a986566a362",
+   "maxStalenessSecs": 2592000,
+   "maxConfBps": 100,
+   "mocks": "Replica Token-2022 mint with the real extension set. Price mirrored from the mainnet Pyth account GpoWLTd6GoisYxYgHz7mTcZvgnfJu4SN7T6PxWjgUTFY, publish time and confidence carried over unchanged."
+  },
+  {
+   "symbol": "NVDAx",
+   "label": "NVIDIA xStock / USD",
+   "underlyingMint": "DWSL6MeNxWdrWkVRwy6vgJ5qjknruevzEEDMUSY3b7Xg",
+   "feedAccount": "9XYxDhW8LUWp9XYfYyY1NwXiYHSieUm2Ha84C6xRdWAh",
+   "feedId": "4244d07890e4610f46bbde67de8f43a4bf8b569eebe904f136b469f148503b7f",
+   "maxStalenessSecs": 2592000,
+   "maxConfBps": 100,
+   "mocks": "Replica Token-2022 mint with the real extension set. Price mirrored from the mainnet Pyth account 6TPsjFigUaMFanRCsxQ4WbmG215xhRBXsb5y5Cn5L6eE, publish time and confidence carried over unchanged."
   }
  ],
  "_confNote": "Ceiling on the oracle confidence band as a fraction of the price, in basis points. Settlement is refused above it. TSLAX publishes about 2.3 bps, so 100 is generous. Zero disables the gate."

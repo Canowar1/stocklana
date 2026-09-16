@@ -1,0 +1,23 @@
+[package]
+name = "stocklana-mirror"
+version = "0.1.0"
+description = "Devnet price mirror for Stocklana"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "stocklana_mirror"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+
+[dependencies]
+anchor-lang = "0.32.1"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

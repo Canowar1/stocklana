@@ -23,6 +23,12 @@ pub struct Market {
     /// Pyth `PriceUpdateV2` account, owned by the receiver program.
     pub feed_account: Pubkey,
     pub feed_id: [u8; 32],
+    /// The program that owned the feed account when this market was registered.
+    /// Recorded rather than assumed, and re-checked on every settlement, so a
+    /// feed cannot change hands underneath a live position. On a real Pyth
+    /// market this is the receiver program; anything else is a mirror and the
+    /// interface says so.
+    pub feed_owner: Pubkey,
     pub max_staleness_secs: u32,
     /// Ceiling on the oracle's confidence interval as a fraction of the price,
     /// in basis points. A settlement price whose band is wider than this is

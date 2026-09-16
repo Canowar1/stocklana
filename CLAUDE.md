@@ -99,3 +99,20 @@ unsets it, so no child process or crash report inherits it. It is refused when
 
 If the program keypair is replaced, run `./scripts/sync-program-id.sh` to
 rewrite `declare_id!` and `Anchor.toml`, then rebuild.
+
+## Devnet demo surface
+
+Three markets, and the difference between them is the honesty story.
+
+- **SOL/USD** settles against the real devnet Pyth feed. Nothing in its price path is mocked.
+- **TSLAx and NVDAx** use replica Token-2022 mints that carry the real extension set (permanent delegate, pausable, scaled UI amount at NVDAx's real 1.0017 multiplier, null-program transfer hook) and prices mirrored from the mainnet Pyth accounts, publish time and confidence carried over unchanged.
+
+`Market` records the feed account's owner at registration and re-checks it on every settlement, so a mirror is identifiable on-chain and the interface labels it. The oracle owner check was never weakened; it became per-market instead of hardcoded.
+
+```
+./scripts/mirror.sh --watch     # keep the devnet mirror fed from mainnet
+./scripts/replica-mints.sh      # create the replica mints
+./scripts/verify.sh             # what is actually deployed right now
+```
+
+The faucet lives at `web/src/app/api/faucet/route.ts` and signs with `FAUCET_AUTHORITY_SECRET`, server-side only. It is rate limited per wallet; a faucet drained during a demo is an avoidable failure.

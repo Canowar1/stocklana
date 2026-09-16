@@ -10,6 +10,7 @@ skip-lint = false
 # provider.wallet at that keypair instead.
 [programs.localnet]
 stocklana = "EZRD9fkVxxQy97Ls35vDsnhQ1Tn8b6HagWeXV8GyqgNQ"
+stocklana_mirror = "DrPTosRsyyhxFgyLotPuRgpTjAD1gGoHRmAkwMDPTLNP"
 
 [registry]
 url = "https://api.apr.dev"

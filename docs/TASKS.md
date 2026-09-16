@@ -3,7 +3,7 @@
 Stable task ids. Any environment or session can pick this up, find the first unchecked box, and continue. Update the status line at the top of the block when you finish one.
 
 **Deadline** 25 Sep 2026 16:00 ET, extended from 18 Sep. **Assets 5 to 7 deadline** 25 Sep 04:00 ET.
-**Status** Blocks A through E are done, the program is live on devnet, and the interface shell is up with live oracle data. Next: wiring the write and bid flows to the program (F6), the replica mint and faucet (F2, F3), and the price mirror (F4).
+**Status** Blocks A through E are done and Block F is nearly complete. Three markets are live on devnet: SOL/USD against the real Pyth feed with no mock in its price path, and TSLAx and NVDAx against mirrored mainnet prices on replica mints that carry the real Token-2022 extension set. The interface writes calls, places and accepts bids, settles and reclaims. Remaining: the positions and activity screens read real data (F6 tail), then Block G.
 
 Earlier status: blocks A through E done, deployment path wired and proven on the fork. `./scripts/preflight.sh`, `./scripts/deploy.sh` and `./scripts/setup-markets.sh` are driven entirely by `.env`. Next: a funded devnet deployer, then Block F.
 
@@ -73,11 +73,11 @@ Gate: the full lifecycle passes in one test file, in the money and out of the mo
 Gate: a stranger with a wallet can complete the path on devnet without being told anything. **Blocked on a funded deployer.** Everything before this block runs locally and needs no SOL.
 
 - [x] **F1** Next.js app, wallet adapter, Anchor client from the generated IDL.
-- [ ] **F2** Devnet replica mint: Token-2022 with the exact extension set from `BUILD_PLAN.md` §1.4, 8 decimals.
-- [ ] **F3** Faucet button with a per-wallet cap. A faucet drained during judging is an avoidable death.
-- [ ] **F4** Devnet mirror program for the TSLAx price, plus a relayer script copying the mainnet account bytes. Label it as a mirror in the UI and show the mainnet source address beside it.
+- [x] **F2** Devnet replica mint: Token-2022 with the exact extension set from `BUILD_PLAN.md` §1.4, 8 decimals.
+- [x] **F3** Faucet button with a per-wallet cap. A faucet drained during judging is an avoidable death.
+- [x] **F4** Devnet mirror program for the TSLAx price, plus a relayer script copying the mainnet account bytes. Label it as a mirror in the UI and show the mainnet source address beside it.
 - [x] **F5** Market list from `docs/constants.json`. Two markets live on devnet, the other twelve visible and marked mainnet-only.
-- [~] **F6** One screen: idle position, write form, offer book, bid form, position card.
+- [x] **F6** One screen: idle position, write form, offer book, bid form, position card.
 - [x] **F7** Expiry picker restricted to US equity market hours. This is where the calendar rule lives, since the program only guards staleness.
 - [x] **F8** Surface the oracle publish time, the confidence interval, and any pending multiplier change on the position card.
 - [ ] **F9** Deploy the program to devnet, deploy the front end, confirm the Demo URL works from a browser that has never seen it.
@@ -120,7 +120,7 @@ Nine days instead of two. These were cut for time and are now affordable. They a
 
 - [ ] **R1** The Pyth settlement-basis panel from `docs/SIDE_TRACKS.md`. Shows the settlement feed's publish time and confidence beside the equity reference feed, and says "reference stale" instead of drawing a fake basis. Roughly two hours, and it is what the Pyth track is judged on.
 - [ ] **R2** Register all fourteen mainnet markets in the UI as a browsable list, with the twelve that are mainnet-only clearly marked. `config/markets.mainnet.json` already holds them.
-- [ ] **R3** A second devnet market on the replica equity mint, so the demo shows both a zero-mock oracle path (SOL/USD) and the equity path side by side.
+- [x] **R3** A second devnet market on the replica equity mint, so the demo shows both a zero-mock oracle path (SOL/USD) and the equity path side by side.
 - [ ] **R4** A real mainnet deployment with one small position, if the user chooses to fund it. Decided separately; `scripts/deploy.sh` refuses mainnet by design.
 
 Still not in scope, extension or no extension: a token, a bonding curve, strike ladders, term structure, rollover, governance, a portfolio view, mobile.

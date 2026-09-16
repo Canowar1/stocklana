@@ -2,22 +2,63 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
 import { MarketConfig } from "@/lib/config";
 import { useOracles } from "@/lib/useOracles";
 import { oracleStatus } from "@/lib/pyth";
 import { formatUsd, formatTimestamp, formatAge } from "@/lib/format";
-import { Card, CardHeader, Badge, Stat, EmptyState, AddressLink, Button } from "./ui";
+import { Card, CardHeader, Badge, Stat, AddressLink } from "./ui";
 import { OracleStatusBadge } from "./OracleCell";
 import { WriteCallForm } from "./WriteCallForm";
-import { IconEmptyBook, IconWarning, IconArrowRight } from "./icons";
+import { OfferBook } from "./OfferBook";
+import { Faucet } from "./Faucet";
+import { useOffers } from "@/lib/useOffers";
+import { pda } from "@/lib/program";
+import { PublicKey } from "@solana/web3.js";
+import { useEffect, useMemo } from "react";
+import { useConnection } from "@solana/wallet-adapter-react";
+import { IconWarning } from "./icons";
 
 export function MarketDetail({ market }: { market: MarketConfig }) {
   const { reads, now, loading } = useOracles([market.feedAccount]);
-  const { connected } = useWallet();
   const read = reads[market.feedAccount] ?? null;
-  const status = oracleStatus(read, now, market.maxStalenessSecs, market.maxConfBps);
+  const [feedOwner, setFeedOwner] = useState<string | undefined>(undefined);
+  const status = oracleStatus(read, now, market.maxStalenessSecs, market.maxConfBps, feedOwner);
   const [tab, setTab] = useState<"write" | "book">("write");
+  const { connection } = useConnection();
+  const [feeDestination, setFeeDestination] = useState<string | null>(null);
+
+  const marketAddress = useMemo(
+    () => pda.market(new PublicKey(market.underlyingMint), Buffer.from(market.feedId, "hex")).toBase58(),
+    [market.underlyingMint, market.feedId],
+  );
+  const { offers, bids, refresh } = useOffers(marketAddress);
+  const openCount = offers.filter((o) => o.state === "open").length;
+
+  // The fee destination is set once when the protocol config is created, so it
+  // is read from the chain rather than configured in the interface.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const info = await connection.getAccountInfo(pda.config(), "confirmed").catch(() => null);
+      if (cancelled || !info) return;
+      setFeeDestination(new PublicKey(info.data.subarray(8 + 32 + 2, 8 + 32 + 2 + 32)).toBase58());
+    })();
+    return () => { cancelled = true; };
+  }, [connection]);
+
+  // The owner the market recorded at registration. The program re-checks it on
+  // every settlement, so the interface checks the same thing.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const info = await connection
+        .getAccountInfo(new PublicKey(marketAddress), "confirmed").catch(() => null);
+      if (cancelled || !info) return;
+      const off = 8 + 32 + 32 + 32 + 32; // underlying, premium, feedAccount, feedId
+      setFeedOwner(new PublicKey(info.data.subarray(off, off + 32)).toBase58());
+    })();
+    return () => { cancelled = true; };
+  }, [connection, marketAddress]);
 
   return (
     <div className="space-y-6">
@@ -34,10 +75,10 @@ export function MarketDetail({ market }: { market: MarketConfig }) {
               {market.symbol}
             </h1>
             <OracleStatusBadge
-              read={read} now={now} loading={loading}
+              read={read} now={now} loading={loading} expectedOwner={feedOwner}
               maxStaleness={market.maxStalenessSecs} maxConfBps={market.maxConfBps}
             />
-            {market.mocks !== "none" && <Badge tone="warning" title={market.mocks}>Mirrored price</Badge>}
+            {status.isMirror && <Badge tone="warning" title={market.mocks}>Mirrored price</Badge>}
           </div>
           <p className="mt-1 text-sm text-ink-secondary">{market.label}</p>
         </div>
@@ -87,7 +128,10 @@ export function MarketDetail({ market }: { market: MarketConfig }) {
             tone={status.confBps > market.maxConfBps ? "error" : undefined} />
         </Card>
         <Card className="px-5 py-4">
-          <Stat label="Open offers" value="0" sub="no offers written yet" />
+          <Stat
+            label="Open offers" value={String(openCount)}
+            sub={openCount === 0 ? "no offers written yet" : "waiting for a bid"}
+          />
         </Card>
         <Card className="px-5 py-4">
           <Stat label="Protocol fee" value="50 bps" sub="on accepted premium only" />
@@ -109,28 +153,28 @@ export function MarketDetail({ market }: { market: MarketConfig }) {
                     : "border-transparent text-ink-secondary hover:text-ink-primary"
                 }`}
               >
-                {t === "write" ? "Write a call" : "Offer book"}
+                {t === "write" ? "Write a call" : `Offer book${openCount > 0 ? ` (${openCount})` : ""}`}
               </button>
             ))}
           </div>
 
           {tab === "write" ? (
-            <WriteCallForm market={market} oraclePrice={read?.price ?? null} connected={connected} />
+            <WriteCallForm
+              market={market} marketAddress={marketAddress}
+              oraclePrice={read?.price ?? null} onWritten={refresh}
+            />
           ) : (
-            <EmptyState
-              icon={<IconEmptyBook className="h-8 w-8" />}
-              title="No open offers"
-              body="This is the ordinary state of a new market. When someone writes a call, it appears here for any wallet to bid on, and the writer picks which bid to take."
-              action={
-                <Button variant="secondary" onClick={() => setTab("write")}>
-                  Write the first one <IconArrowRight className="h-4 w-4" />
-                </Button>
-              }
+            <OfferBook
+              market={market} marketAddress={marketAddress}
+              offers={offers} bids={bids} now={now}
+              feeDestination={feeDestination} onChanged={refresh}
             />
           )}
         </Card>
 
         <div className="space-y-4">
+          <Faucet />
+
           <Card as="section">
             <CardHeader title="How settlement works" />
             <div className="space-y-3 px-5 py-4 text-xs leading-relaxed text-ink-secondary">

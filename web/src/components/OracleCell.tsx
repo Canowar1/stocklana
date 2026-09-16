@@ -10,14 +10,15 @@ import { OracleRead, oracleStatus } from "@/lib/pyth";
  * the confidence band decide whether the program will accept it, so they travel
  * with the number everywhere it appears.
  */
-export function OraclePrice({ read, now, maxStaleness, maxConfBps, size = "md" }: {
+export function OraclePrice({ read, now, maxStaleness, maxConfBps, size = "md", expectedOwner }: {
   read: OracleRead | null;
   now: number;
   maxStaleness: number;
   maxConfBps: number;
   size?: "sm" | "md" | "lg";
+  expectedOwner?: string;
 }) {
-  const s = oracleStatus(read, now, maxStaleness, maxConfBps);
+  const s = oracleStatus(read, now, maxStaleness, maxConfBps, expectedOwner);
   const cls = size === "lg" ? "text-2xl" : size === "sm" ? "text-sm" : "text-base";
 
   if (!read) {
@@ -38,16 +39,16 @@ export function OraclePrice({ read, now, maxStaleness, maxConfBps, size = "md" }
   );
 }
 
-export function OracleStatusBadge({ read, now, maxStaleness, maxConfBps, loading }: {
+export function OracleStatusBadge({ read, now, maxStaleness, maxConfBps, loading, expectedOwner }: {
   read: OracleRead | null; now: number; maxStaleness: number; maxConfBps: number;
-  loading?: boolean;
+  loading?: boolean; expectedOwner?: string;
 }) {
   // Before the first read lands there is nothing to judge. Saying "Blocked"
   // here would report a fault that has not been observed.
   if (loading && !read) {
     return <span className="inline-block h-5 w-20 animate-pulse rounded-md bg-bg-tertiary" />;
   }
-  const s = oracleStatus(read, now, maxStaleness, maxConfBps);
+  const s = oracleStatus(read, now, maxStaleness, maxConfBps, expectedOwner);
   if (s.ok) {
     return (
       <Badge tone="success" title="The program would accept this print for settlement">

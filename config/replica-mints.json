@@ -1,0 +1,7 @@
+{
+ "_note": "Devnet stand-ins for the xStocks mints, carrying the same Token-2022 extension set as the real ones. Created by scripts/create-replica-mints.ts. These are mocks and are labelled as such wherever they appear.",
+ "mints": {
+  "TSLAx": "9qXMq4BbLzwxgzWdPqStEWPLvkHTrYDcTfyZ59LEbgRt",
+  "NVDAx": "DWSL6MeNxWdrWkVRwy6vgJ5qjknruevzEEDMUSY3b7Xg"
+ }
+}

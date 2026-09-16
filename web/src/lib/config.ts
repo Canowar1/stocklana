@@ -45,9 +45,16 @@ export const PROGRAM_ID =
 export const MARKETS: MarketConfig[] = FILES[CLUSTER].markets;
 export const PREMIUM_MINT = FILES[CLUSTER].premiumMint;
 
-/** Markets configured for mainnet but not deployed on the current cluster. */
+/**
+ * Markets configured for mainnet that are not also available here. A symbol
+ * that is live on this cluster, even as a mirror, is not "unavailable".
+ */
 export const OTHER_MARKETS: MarketConfig[] =
-  CLUSTER === "mainnet" ? [] : (FILES.mainnet.markets as MarketConfig[]);
+  CLUSTER === "mainnet"
+    ? []
+    : (FILES.mainnet.markets as MarketConfig[]).filter(
+        (m) => !MARKETS.some((live) => live.symbol === m.symbol),
+      );
 
 export const EXPLORER = (addr: string, kind: "address" | "tx" = "address") => {
   const suffix =

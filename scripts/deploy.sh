@@ -22,6 +22,17 @@ HOME="$PWD/.buildhome" anchor deploy \
   --program-name stocklana \
   --program-keypair "$PROGRAM_KEYPAIR"
 
+# The price mirror is a devnet tool and is never deployed to mainnet.
+if [ "$CLUSTER" != "mainnet" ] && [ -f keys/stocklana-mirror-keypair.json ]; then
+  echo
+  echo "Deploying the devnet price mirror"
+  HOME="$PWD/.buildhome" anchor deploy \
+    --provider.cluster "$RPC_URL" \
+    --provider.wallet "$DEPLOYER_KEYPAIR" \
+    --program-name stocklana-mirror \
+    --program-keypair keys/stocklana-mirror-keypair.json
+fi
+
 echo
 echo "Registering config and markets"
 # No HOME override here: it only exists for cargo-build-sbf and it breaks

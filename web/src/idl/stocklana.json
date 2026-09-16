@@ -1,0 +1,1880 @@
+{
+  "address": "EZRD9fkVxxQy97Ls35vDsnhQ1Tn8b6HagWeXV8GyqgNQ",
+  "metadata": {
+    "name": "stocklana",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Covered-call market for tokenized equity on Solana"
+  },
+  "instructions": [
+    {
+      "name": "accept_bid",
+      "docs": [
+        "The writer takes one bid. Premium settles immediately, minus the fee."
+      ],
+      "discriminator": [
+        196,
+        191,
+        1,
+        229,
+        144,
+        172,
+        122,
+        227
+      ],
+      "accounts": [
+        {
+          "name": "writer",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "offer"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "relations": [
+            "offer"
+          ]
+        },
+        {
+          "name": "offer",
+          "writable": true,
+          "relations": [
+            "bid"
+          ]
+        },
+        {
+          "name": "bid",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              },
+              {
+                "kind": "account",
+                "path": "bid.bidder",
+                "account": "Bid"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bid_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              },
+              {
+                "kind": "account",
+                "path": "bid.bidder",
+                "account": "Bid"
+              }
+            ]
+          }
+        },
+        {
+          "name": "premium_mint",
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "writer_premium_account",
+          "writable": true
+        },
+        {
+          "name": "fee_destination",
+          "writable": true
+        },
+        {
+          "name": "premium_token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "add_market",
+      "docs": [
+        "Registers an underlying and its oracle. The feed account is verified",
+        "here so that `settle` can trust the market record later."
+      ],
+      "discriminator": [
+        41,
+        137,
+        185,
+        126,
+        69,
+        139,
+        254,
+        55
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "underlying_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "feed_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "underlying_mint"
+        },
+        {
+          "name": "premium_mint"
+        },
+        {
+          "name": "feed_account"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "feed_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "max_staleness_secs",
+          "type": "u32"
+        },
+        {
+          "name": "max_conf_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "admin_close_account",
+      "docs": [
+        "Escape hatch for an account this program owns that no longer matches the",
+        "struct it was written with, which is what happens when a layout changes",
+        "before launch. Typed instructions cannot touch such an account at all,",
+        "because Anchor refuses to deserialize it.",
+        "",
+        "Authorised by the program's upgrade authority rather than by the config,",
+        "so it still works when the config itself is the stale account. This",
+        "grants no power that authority did not already have: anyone who can",
+        "replace the program can already do anything to its accounts.",
+        "",
+        "It moves no tokens. Collateral lives in SPL token accounts owned by",
+        "vault PDAs, which this cannot touch."
+      ],
+      "discriminator": [
+        131,
+        60,
+        75,
+        215,
+        109,
+        34,
+        157,
+        26
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "target",
+          "docs": [
+            "wiped. Guarded by the upgrade-authority constraint below."
+          ],
+          "writable": true
+        },
+        {
+          "name": "program",
+          "address": "EZRD9fkVxxQy97Ls35vDsnhQ1Tn8b6HagWeXV8GyqgNQ"
+        },
+        {
+          "name": "program_data"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancel_bid",
+      "docs": [
+        "Withdraws an escrowed bid that has not been accepted."
+      ],
+      "discriminator": [
+        40,
+        243,
+        190,
+        217,
+        208,
+        253,
+        86,
+        206
+      ],
+      "accounts": [
+        {
+          "name": "bidder",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "bid"
+          ]
+        },
+        {
+          "name": "market",
+          "relations": [
+            "offer"
+          ]
+        },
+        {
+          "name": "offer",
+          "relations": [
+            "bid"
+          ]
+        },
+        {
+          "name": "bid",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              },
+              {
+                "kind": "account",
+                "path": "bidder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bid_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              },
+              {
+                "kind": "account",
+                "path": "bidder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "premium_mint"
+        },
+        {
+          "name": "bidder_token_account",
+          "writable": true
+        },
+        {
+          "name": "premium_token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_config",
+      "docs": [
+        "Closes the config and returns its rent. Only the authority, and only",
+        "useful when tearing down a deployment."
+      ],
+      "discriminator": [
+        145,
+        9,
+        72,
+        157,
+        95,
+        125,
+        61,
+        85
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_market",
+      "docs": [
+        "Closes a market and returns its rent. Deliberately strict: the market",
+        "must be disabled first, so no new offers can arrive, and every offer",
+        "written against it must already have settled or been reclaimed. Closing",
+        "a market with live offers would leave their collateral unreachable."
+      ],
+      "discriminator": [
+        88,
+        154,
+        248,
+        186,
+        48,
+        14,
+        123,
+        244
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "init_config",
+      "docs": [
+        "Only the program's upgrade authority may call this. Without that check",
+        "the first caller after a fresh deploy becomes the protocol authority,",
+        "which is front-runnable by anyone watching for the deploy transaction."
+      ],
+      "discriminator": [
+        23,
+        235,
+        115,
+        232,
+        168,
+        96,
+        1,
+        231
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "fee_destination"
+        },
+        {
+          "name": "program",
+          "address": "EZRD9fkVxxQy97Ls35vDsnhQ1Tn8b6HagWeXV8GyqgNQ"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "min_duration",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "place_bid",
+      "docs": [
+        "Escrows a USDC premium bid against an open offer."
+      ],
+      "discriminator": [
+        238,
+        77,
+        148,
+        91,
+        200,
+        151,
+        92,
+        146
+      ],
+      "accounts": [
+        {
+          "name": "bidder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market",
+          "relations": [
+            "offer"
+          ]
+        },
+        {
+          "name": "offer",
+          "writable": true
+        },
+        {
+          "name": "premium_mint",
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "bid",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              },
+              {
+                "kind": "account",
+                "path": "bidder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bid_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              },
+              {
+                "kind": "account",
+                "path": "bidder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bidder_token_account",
+          "writable": true
+        },
+        {
+          "name": "premium_token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "reclaim",
+      "docs": [
+        "Returns collateral to the writer when the offer expired without a buyer."
+      ],
+      "discriminator": [
+        44,
+        177,
+        236,
+        249,
+        145,
+        109,
+        163,
+        186
+      ],
+      "accounts": [
+        {
+          "name": "writer",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "offer"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "relations": [
+            "offer"
+          ]
+        },
+        {
+          "name": "offer",
+          "writable": true
+        },
+        {
+          "name": "underlying_mint",
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "writer_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "refund_bid",
+      "docs": [
+        "Refunds a losing bid once the offer has been filled, or any active bid",
+        "after expiry."
+      ],
+      "discriminator": [
+        171,
+        145,
+        79,
+        190,
+        16,
+        50,
+        10,
+        24
+      ],
+      "accounts": [
+        {
+          "name": "bidder",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "bid"
+          ]
+        },
+        {
+          "name": "market",
+          "relations": [
+            "offer"
+          ]
+        },
+        {
+          "name": "offer",
+          "relations": [
+            "bid"
+          ]
+        },
+        {
+          "name": "bid",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              },
+              {
+                "kind": "account",
+                "path": "bidder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bid_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              },
+              {
+                "kind": "account",
+                "path": "bidder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "premium_mint"
+        },
+        {
+          "name": "bidder_token_account",
+          "writable": true
+        },
+        {
+          "name": "premium_token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_market_enabled",
+      "discriminator": [
+        206,
+        60,
+        159,
+        159,
+        62,
+        242,
+        4,
+        82
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "enabled",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "settle",
+      "docs": [
+        "Settles an accepted call after expiry. Permissionless on purpose: if",
+        "only the buyer could call this, an out-of-the-money buyer would simply",
+        "never call it and the writer's collateral would stay locked forever."
+      ],
+      "discriminator": [
+        175,
+        42,
+        185,
+        87,
+        144,
+        131,
+        102,
+        212
+      ],
+      "accounts": [
+        {
+          "name": "cranker",
+          "docs": [
+            "Anyone may push settlement through. They pay for the buyer's token",
+            "account if it does not exist yet."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "relations": [
+            "offer"
+          ]
+        },
+        {
+          "name": "offer",
+          "writable": true
+        },
+        {
+          "name": "underlying_mint",
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "feed_account",
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "buyer"
+        },
+        {
+          "name": "buyer_token_account",
+          "docs": [
+            "`init_if_needed` is safe here: the address is constrained to the",
+            "canonical associated token account for this mint and authority, so",
+            "there is no account an attacker could substitute, and a token account",
+            "cannot be re-initialised to reset state."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "underlying_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "writer"
+        },
+        {
+          "name": "writer_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "writer"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "underlying_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "write_call",
+      "docs": [
+        "Locks collateral and writes one call against it."
+      ],
+      "discriminator": [
+        62,
+        237,
+        168,
+        152,
+        173,
+        232,
+        243,
+        212
+      ],
+      "accounts": [
+        {
+          "name": "writer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "underlying_mint",
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "offer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "writer"
+              },
+              {
+                "kind": "arg",
+                "path": "offer_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "writer_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "offer_id",
+          "type": "u64"
+        },
+        {
+          "name": "collateral_amount",
+          "type": "u64"
+        },
+        {
+          "name": "strike_usd",
+          "type": "u64"
+        },
+        {
+          "name": "expiry_ts",
+          "type": "i64"
+        },
+        {
+          "name": "min_premium",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Bid",
+      "discriminator": [
+        143,
+        246,
+        48,
+        245,
+        42,
+        145,
+        180,
+        88
+      ]
+    },
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
+      ]
+    },
+    {
+      "name": "Market",
+      "discriminator": [
+        219,
+        190,
+        213,
+        55,
+        0,
+        227,
+        198,
+        154
+      ]
+    },
+    {
+      "name": "Offer",
+      "discriminator": [
+        215,
+        88,
+        60,
+        71,
+        170,
+        162,
+        73,
+        229
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "BidAccepted",
+      "discriminator": [
+        19,
+        140,
+        36,
+        175,
+        195,
+        5,
+        55,
+        193
+      ]
+    },
+    {
+      "name": "BidPlaced",
+      "discriminator": [
+        135,
+        53,
+        176,
+        83,
+        193,
+        69,
+        108,
+        61
+      ]
+    },
+    {
+      "name": "CallWritten",
+      "discriminator": [
+        83,
+        63,
+        43,
+        50,
+        27,
+        190,
+        124,
+        120
+      ]
+    },
+    {
+      "name": "Settled",
+      "discriminator": [
+        232,
+        210,
+        40,
+        17,
+        142,
+        124,
+        145,
+        238
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "StaleOracle",
+      "msg": "Oracle price is older than the market's max staleness"
+    },
+    {
+      "code": 6001,
+      "name": "WrongFeed",
+      "msg": "Oracle account feed id does not match the market"
+    },
+    {
+      "code": 6002,
+      "name": "BadExponent",
+      "msg": "Oracle exponent is not -8"
+    },
+    {
+      "code": 6003,
+      "name": "BadOracleOwner",
+      "msg": "Oracle account is not owned by the Pyth receiver program"
+    },
+    {
+      "code": 6004,
+      "name": "BadOraclePrice",
+      "msg": "Oracle price is not positive"
+    },
+    {
+      "code": 6005,
+      "name": "OracleConfidenceTooWide",
+      "msg": "Oracle confidence interval is wider than the market allows"
+    },
+    {
+      "code": 6006,
+      "name": "NotExpired",
+      "msg": "Offer has not reached its expiry yet"
+    },
+    {
+      "code": 6007,
+      "name": "BadOfferState",
+      "msg": "Offer is not in the required state for this instruction"
+    },
+    {
+      "code": 6008,
+      "name": "BadBidState",
+      "msg": "Bid is not in the required state for this instruction"
+    },
+    {
+      "code": 6009,
+      "name": "BelowMinPremium",
+      "msg": "Bid amount is below the offer's minimum premium"
+    },
+    {
+      "code": 6010,
+      "name": "ExpiryTooSoon",
+      "msg": "Expiry is sooner than the configured minimum duration"
+    },
+    {
+      "code": 6011,
+      "name": "ExpiryInPast",
+      "msg": "Expiry is already in the past"
+    },
+    {
+      "code": 6012,
+      "name": "MintPaused",
+      "msg": "The underlying mint is paused, transfers cannot settle"
+    },
+    {
+      "code": 6013,
+      "name": "MarketDisabled",
+      "msg": "Market is disabled by the authority"
+    },
+    {
+      "code": 6014,
+      "name": "MarketHasOpenOffers",
+      "msg": "Market still has outstanding offers and cannot be closed"
+    },
+    {
+      "code": 6015,
+      "name": "MarketStillEnabled",
+      "msg": "Market must be disabled before it can be closed"
+    },
+    {
+      "code": 6016,
+      "name": "Unauthorized",
+      "msg": "Signer is not authorised for this action"
+    },
+    {
+      "code": 6017,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6018,
+      "name": "ZeroCollateral",
+      "msg": "Collateral amount must be greater than zero"
+    },
+    {
+      "code": 6019,
+      "name": "ZeroStrike",
+      "msg": "Strike must be greater than zero"
+    },
+    {
+      "code": 6020,
+      "name": "FeeTooHigh",
+      "msg": "Fee in basis points exceeds 100%"
+    },
+    {
+      "code": 6021,
+      "name": "BadMintDecimals",
+      "msg": "Underlying mint has more decimals than the program supports"
+    }
+  ],
+  "types": [
+    {
+      "name": "Bid",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "offer",
+            "type": "pubkey"
+          },
+          {
+            "name": "bidder",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "BidState"
+              }
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BidAccepted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "offer",
+            "type": "pubkey"
+          },
+          {
+            "name": "buyer",
+            "type": "pubkey"
+          },
+          {
+            "name": "premium",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BidPlaced",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "offer",
+            "type": "pubkey"
+          },
+          {
+            "name": "bidder",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BidState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Cancelled"
+          },
+          {
+            "name": "Won"
+          },
+          {
+            "name": "Refunded"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CallWritten",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "offer",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "writer",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "strike_usd",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_ts",
+            "type": "i64"
+          },
+          {
+            "name": "multiplier",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Config",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_bps",
+            "docs": [
+              "Basis points taken from an accepted premium."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "fee_destination",
+            "docs": [
+              "USDC token account that receives the fee."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "min_duration",
+            "docs": [
+              "Minimum seconds between writing a call and its expiry."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Market",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "underlying_mint",
+            "docs": [
+              "Token-2022 mint of the underlying, 8 decimals."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "premium_mint",
+            "docs": [
+              "Mint the premium is paid in, USDC, 6 decimals."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "feed_account",
+            "docs": [
+              "Pyth `PriceUpdateV2` account, owned by the receiver program."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "feed_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "feed_owner",
+            "docs": [
+              "The program that owned the feed account when this market was registered.",
+              "Recorded rather than assumed, and re-checked on every settlement, so a",
+              "feed cannot change hands underneath a live position. On a real Pyth",
+              "market this is the receiver program; anything else is a mirror and the",
+              "interface says so."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "max_staleness_secs",
+            "type": "u32"
+          },
+          {
+            "name": "max_conf_bps",
+            "docs": [
+              "Ceiling on the oracle's confidence interval as a fraction of the price,",
+              "in basis points. A settlement price whose band is wider than this is",
+              "refused. Pyth publishes confidence for a reason and a wide band means",
+              "the publishers disagree."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "open_offers",
+            "docs": [
+              "Offers written against this market that have not yet settled or been",
+              "reclaimed. A market cannot be closed while any are outstanding, because",
+              "closing it would make their collateral unrecoverable."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Offer",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "writer",
+            "type": "pubkey"
+          },
+          {
+            "name": "offer_id",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "docs": [
+              "Raw base units of the underlying locked in the vault."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "strike_usd",
+            "docs": [
+              "USD per UI unit, scaled by 1e8."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "expiry_ts",
+            "type": "i64"
+          },
+          {
+            "name": "min_premium",
+            "docs": [
+              "USDC base units."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "multiplier_at_write",
+            "docs": [
+              "f64 bits of the mint's effective scaledUiAmount multiplier at write time.",
+              "Used to adjust the strike if a corporate action moves the multiplier."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "OfferState"
+              }
+            }
+          },
+          {
+            "name": "buyer",
+            "type": "pubkey"
+          },
+          {
+            "name": "premium_paid",
+            "type": "u64"
+          },
+          {
+            "name": "settled_price",
+            "docs": [
+              "Oracle price used at settlement, scaled by 1e8. Zero until settled."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "settled_strike",
+            "docs": [
+              "Strike after the multiplier adjustment, written at settlement."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "payout_amount",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OfferState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Open"
+          },
+          {
+            "name": "Filled"
+          },
+          {
+            "name": "Settled"
+          },
+          {
+            "name": "Reclaimed"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Settled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "offer",
+            "type": "pubkey"
+          },
+          {
+            "name": "settle_price",
+            "type": "u64"
+          },
+          {
+            "name": "adjusted_strike",
+            "type": "u64"
+          },
+          {
+            "name": "publish_time",
+            "type": "i64"
+          },
+          {
+            "name": "confidence",
+            "type": "u64"
+          },
+          {
+            "name": "payout_to_buyer",
+            "type": "u64"
+          },
+          {
+            "name": "returned_to_writer",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}
