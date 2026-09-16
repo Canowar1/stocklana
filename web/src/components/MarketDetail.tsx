@@ -11,6 +11,7 @@ import { OracleStatusBadge } from "./OracleCell";
 import { WriteCallForm } from "./WriteCallForm";
 import { OfferBook } from "./OfferBook";
 import { Faucet } from "./Faucet";
+import { TitleTicker } from "./TitleTicker";
 import { useOffers } from "@/lib/useOffers";
 import { pda } from "@/lib/program";
 import { PublicKey } from "@solana/web3.js";
@@ -33,6 +34,9 @@ export function MarketDetail({ market }: { market: MarketConfig }) {
   );
   const { offers, bids, refresh } = useOffers(marketAddress);
   const openCount = offers.filter((o) => o.state === "open").length;
+  const lockedRaw = offers
+    .filter((o) => o.state === "open" || o.state === "filled")
+    .reduce((sum, o) => sum + o.collateralAmount, 0n);
 
   // The fee destination is set once when the protocol config is created, so it
   // is read from the chain rather than configured in the interface.
@@ -62,6 +66,8 @@ export function MarketDetail({ market }: { market: MarketConfig }) {
 
   return (
     <div className="space-y-6">
+      <TitleTicker price={read ? Number(read.price) / 1e8 : null} symbol={market.symbol} />
+
       <nav className="flex items-center gap-1.5 text-xs text-ink-muted" aria-label="Breadcrumb">
         <Link href="/" className="transition-colors hover:text-brand">Markets</Link>
         <span aria-hidden>/</span>
@@ -162,6 +168,7 @@ export function MarketDetail({ market }: { market: MarketConfig }) {
             <WriteCallForm
               market={market} marketAddress={marketAddress}
               oraclePrice={read?.price ?? null} onWritten={refresh}
+              lockedRaw={lockedRaw}
             />
           ) : (
             <OfferBook

@@ -118,9 +118,11 @@ The demo survives all four. It does not survive cutting `settle`, the staleness 
 
 Nine days instead of two. These were cut for time and are now affordable. They are listed in the order they earn their keep, and none of them precedes a working Block F.
 
-- [ ] **R1** The Pyth settlement-basis panel from `docs/SIDE_TRACKS.md`. Shows the settlement feed's publish time and confidence beside the equity reference feed, and says "reference stale" instead of drawing a fake basis. Roughly two hours, and it is what the Pyth track is judged on.
+- [~] **R1** The Pyth settlement-basis panel from `docs/SIDE_TRACKS.md`. Shows the settlement feed's publish time and confidence beside the equity reference feed, and says "reference stale" instead of drawing a fake basis. Roughly two hours, and it is what the Pyth track is judged on.
 - [ ] **R2** Register all fourteen mainnet markets in the UI as a browsable list, with the twelve that are mainnet-only clearly marked. `config/markets.mainnet.json` already holds them.
 - [x] **R3** A second devnet market on the replica equity mint, so the demo shows both a zero-mock oracle path (SOL/USD) and the equity path side by side.
 - [ ] **R4** A real mainnet deployment with one small position, if the user chooses to fund it. Decided separately; `scripts/deploy.sh` refuses mainnet by design.
 
-Still not in scope, extension or no extension: a token, a bonding curve, strike ladders, term structure, rollover, governance, a portfolio view, mobile.
+- [ ] **R5** Spot drawn inside the strike ladder, once the offer book holds several strikes. Two independent products converged on this; see `docs/INTERFACE_REFERENCES.md`.
+
+Still not in scope, extension or no extension: a token, a bonding curve, strike ladders, term structure, rollover, governance, mobile, an option chain grid, implied volatility, greeks, leverage controls, or a column picker. The last four are in `docs/INTERFACE_REFERENCES.md` with the reason each is declined.

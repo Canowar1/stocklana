@@ -10,6 +10,7 @@ import { useProgram } from "@/lib/program";
 import { useTokenBalance } from "@/lib/useBalance";
 import { writeCall, readableError } from "@/lib/actions";
 import { Field, Input, Button, Card } from "./ui";
+import { PayoffChart } from "./PayoffChart";
 import { IconWarning } from "./icons";
 import { TxFeedback, TxState } from "./TxFeedback";
 
@@ -35,16 +36,29 @@ function toBaseUnits(value: string, decimals: number): bigint | null {
   return BigInt(whole || "0") * 10n ** BigInt(decimals) + BigInt((frac || "0").padEnd(decimals, "0"));
 }
 
-export function WriteCallForm({ market, marketAddress, oraclePrice, onWritten }: {
+function Row({ label, children, tone }: {
+  label: string; children: React.ReactNode; tone?: "success";
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className="text-ink-muted">{label}</dt>
+      <dd className={`tnum text-right ${tone === "success" ? "text-state-success" : "text-ink-primary"}`}>
+        {children}
+      </dd>
+    </div>
+  );
+}
+
+export function WriteCallForm({ market, marketAddress, oraclePrice, onWritten, lockedRaw = 0n }: {
   market: MarketConfig;
   marketAddress: string | null;
   oraclePrice: bigint | null;
   onWritten: () => void;
+  lockedRaw?: bigint;
 }) {
   const { connected, publicKey } = useWallet();
   const program = useProgram();
   const { balance } = useTokenBalance(market.underlyingMint);
-  const { balance: premiumBalance } = useTokenBalance(undefined);
 
   const spot = oraclePrice ? Number(oraclePrice) / 1e8 : null;
   const [size, setSize] = useState("");
@@ -69,6 +83,7 @@ export function WriteCallForm({ market, marketAddress, oraclePrice, onWritten }:
   const sizeUnits = toBaseUnits(size, decimals);
   const overBalance = sizeUnits !== null && balance !== null && sizeUnits > balance.raw;
   const sizeNumber = parseFloat(size);
+  const strikeNumber = parseFloat(strike);
 
   const canSubmit =
     !!program && !!publicKey && !!marketAddress &&
@@ -110,15 +125,26 @@ export function WriteCallForm({ market, marketAddress, oraclePrice, onWritten }:
         upside above your strike.
       </p>
 
+      <dl className="flex flex-wrap gap-x-8 gap-y-1 border-y border-line-secondary py-2.5 text-xs">
+        <div className="flex gap-2">
+          <dt className="text-ink-muted">Available</dt>
+          <dd className="tnum text-ink-primary">
+            {balance ? `${formatAmount(balance.raw, balance.decimals)} ${market.symbol}` : "—"}
+          </dd>
+        </div>
+        <div className="flex gap-2">
+          <dt className="text-ink-muted">Locked in open offers</dt>
+          <dd className="tnum text-ink-primary">
+            {formatAmount(lockedRaw, balance?.decimals ?? 8)} {market.symbol}
+          </dd>
+        </div>
+      </dl>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           label={`Size (${market.symbol})`} htmlFor="size"
           error={overBalance ? "More than your balance" : undefined}
-          hint={
-            balance
-              ? `Balance ${formatAmount(balance.raw, balance.decimals)}`
-              : connected ? "No balance on this network" : "Locked until settlement or expiry"
-          }
+          hint="Locked until settlement or expiry"
         >
           <Input id="size" inputMode="decimal" placeholder="10.00000000"
             value={size} onChange={(e) => setSize(e.target.value)} />
@@ -160,20 +186,29 @@ export function WriteCallForm({ market, marketAddress, oraclePrice, onWritten }:
       </div>
 
       {Number.isFinite(sizeNumber) && sizeNumber > 0 && (
-        <Card className="space-y-2 bg-bg-tertiary px-4 py-3 text-xs">
-          <p className="font-medium text-ink-primary">What you are agreeing to</p>
-          <ul className="space-y-1.5 text-ink-secondary">
-            <li>
-              Above your strike the buyer takes a share of the position. The most they can ever
-              receive is{" "}
-              <span className="tnum text-ink-primary">
-                {sizeNumber.toLocaleString("en-US")} {market.symbol}
-              </span>
-              , and only as the price approaches infinity.
-            </li>
-            <li>Below your strike you keep the entire position and the premium.</li>
-            <li>There is no liquidation price. Your collateral covers every outcome.</li>
-          </ul>
+        <Card className="space-y-3 bg-bg-tertiary px-4 py-3">
+          <PayoffChart
+            spot={spot} strike={parseFloat(strike) || null} size={sizeNumber}
+            premium={parseFloat(minPremium) || 0} symbol={market.symbol}
+          />
+          <dl className="space-y-1.5 border-t border-line-secondary pt-3 text-xs">
+            <Row label="Capped value above the strike">
+              {strikeNumber > 0
+                ? `${formatUsd(sizeNumber * strikeNumber)} + premium`
+                : "set a strike"}
+            </Row>
+            <Row label="Most the buyer can ever receive">
+              {sizeNumber.toLocaleString("en-US")} {market.symbol}
+            </Row>
+            <Row label="Below the strike">You keep the position and the premium</Row>
+            <Row label="Premium floor">
+              {minPremium ? `${minPremium} USDC` : "any bid accepted"}
+            </Row>
+            <Row label="Protocol fee">50 bps of the accepted premium</Row>
+            {/* Every venue in this category shows a number here. Ours is the
+                absence, and stating it is the point. */}
+            <Row label="Liquidation price" tone="success">None</Row>
+          </dl>
         </Card>
       )}
 
