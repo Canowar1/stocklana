@@ -18,6 +18,7 @@ import {
   Connection, Keypair, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import {
+  TOKEN_PROGRAM_ID, createMint as createPlainMint,
   TOKEN_2022_PROGRAM_ID, ExtensionType, AccountState,
   getMintLen, createInitializeMintInstruction,
   createInitializeMetadataPointerInstruction,
@@ -107,6 +108,17 @@ async function createMint(conn: Connection, payer: Keypair, spec: Spec): Promise
   return mint.publicKey;
 }
 
+/**
+ * The premium mint too. Devnet's well-known USDC faucet mint is authority-held
+ * by someone else, so nobody can be given a test balance of it and no bid could
+ * ever be placed here. A test-network USDC we control is the only way the
+ * buying side of this market is demonstrable at all, and it is labelled.
+ */
+async function createPremiumMint(conn: Connection, payer: Keypair): Promise<PublicKey> {
+  return createPlainMint(conn, payer, payer.publicKey, payer.publicKey, 6,
+    Keypair.generate(), { commitment: "confirmed" }, TOKEN_PROGRAM_ID);
+}
+
 (async () => {
   const rpc = process.env.ANCHOR_PROVIDER_URL ?? "https://api.devnet.solana.com";
   const payer = loadKeypair(process.env.ANCHOR_WALLET ?? "keys/devnet-deployer.json");
@@ -130,9 +142,21 @@ async function createMint(conn: Connection, payer: Keypair, spec: Spec): Promise
     console.log(`  ${spec.symbol.padEnd(8)} created  ${mint.toBase58()}  multiplier ${spec.multiplier}`);
   }
 
+  let premium: string | undefined = fs.existsSync(outPath)
+    ? JSON.parse(fs.readFileSync(outPath, "utf8")).premiumMint
+    : undefined;
+  if (premium && !(await conn.getAccountInfo(new PublicKey(premium)))) premium = undefined;
+  if (premium) {
+    console.log(`  ${"USDC".padEnd(8)} already exists  ${premium}`);
+  } else {
+    premium = (await createPremiumMint(conn, payer)).toBase58();
+    console.log(`  ${"USDC".padEnd(8)} created  ${premium}  6dp  test-network premium mint`);
+  }
+
   fs.writeFileSync(outPath, JSON.stringify({
     _note: "Devnet stand-ins for the xStocks mints, carrying the same Token-2022 extension set as the real ones. Created by scripts/create-replica-mints.ts. These are mocks and are labelled as such wherever they appear.",
     mints: existing,
+    premiumMint: premium,
   }, null, 1));
   console.log(`\nwrote ${path.relative(process.cwd(), outPath)}`);
 })().catch((e) => { console.error(e); process.exit(1); });

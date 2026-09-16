@@ -3,7 +3,7 @@
 Stable task ids. Any environment or session can pick this up, find the first unchecked box, and continue. Update the status line at the top of the block when you finish one.
 
 **Deadline** 25 Sep 2026 16:00 ET, extended from 18 Sep. **Assets 5 to 7 deadline** 25 Sep 04:00 ET.
-**Status** Blocks A through E are done and Block F is nearly complete. Three markets are live on devnet: SOL/USD against the real Pyth feed with no mock in its price path, and TSLAx and NVDAx against mirrored mainnet prices on replica mints that carry the real Token-2022 extension set. The interface writes calls, places and accepts bids, settles and reclaims. Remaining: the positions and activity screens read real data (F6 tail), then Block G.
+**Status** Blocks A through E are done and Block F is complete. Every screen reads the chain. Three markets are live on devnet: SOL/USD against the real Pyth feed with no mock in its price path, and TSLAx and NVDAx against mirrored mainnet prices on replica mints that carry the real Token-2022 extension set. The interface writes calls, places and accepts bids, settles, reclaims, and shows positions and settlement receipts from on-chain state. `./scripts/devnet-smoke.sh` runs a full lifecycle on devnet with a seeded counterparty. Remaining: Block G, the submission assets.
 
 Earlier status: blocks A through E done, deployment path wired and proven on the fork. `./scripts/preflight.sh`, `./scripts/deploy.sh` and `./scripts/setup-markets.sh` are driven entirely by `.env`. Next: a funded devnet deployer, then Block F.
 
@@ -77,7 +77,7 @@ Gate: a stranger with a wallet can complete the path on devnet without being tol
 - [x] **F3** Faucet button with a per-wallet cap. A faucet drained during judging is an avoidable death.
 - [x] **F4** Devnet mirror program for the TSLAx price, plus a relayer script copying the mainnet account bytes. Label it as a mirror in the UI and show the mainnet source address beside it.
 - [x] **F5** Market list from `docs/constants.json`. Two markets live on devnet, the other twelve visible and marked mainnet-only.
-- [x] **F6** One screen: idle position, write form, offer book, bid form, position card.
+- [x] **F6** Markets, market detail with the write form and offer book, positions with settlement receipts, and activity with feed health. All read on-chain state.
 - [x] **F7** Expiry picker restricted to US equity market hours. This is where the calendar rule lives, since the program only guards staleness.
 - [x] **F8** Surface the oracle publish time, the confidence interval, and any pending multiplier change on the position card.
 - [ ] **F9** Deploy the program to devnet, deploy the front end, confirm the Demo URL works from a browser that has never seen it.

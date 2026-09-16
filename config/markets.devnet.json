@@ -1,7 +1,7 @@
 {
  "_note": "Markets registered on devnet. SOL/USD is the only Pyth feed that is genuinely live on devnet, so it is the market with zero mocks in the price path. The equity markets need the replica mint and the price mirror from BUILD_PLAN.md section 4 and are added once those exist.",
- "premiumMint": "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr",
- "_premiumMintNote": "devnet USDC faucet mint",
+ "premiumMint": "3foaAMAHy5HX6JiKJk51VaAEjTPvKWa15XfWsv7N6AM3",
+ "_premiumMintNote": "Test-network USDC created by scripts/create-replica-mints.ts. Devnet's well-known USDC faucet mint is authority-held by someone else, so no test balance of it can be handed out and no bid could ever be placed. This is a mock and the interface says so.",
  "markets": [
   {
    "symbol": "SOL",

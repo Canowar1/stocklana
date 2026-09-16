@@ -116,3 +116,24 @@ Three markets, and the difference between them is the honesty story.
 ```
 
 The faucet lives at `web/src/app/api/faucet/route.ts` and signs with `FAUCET_AUTHORITY_SECRET`, server-side only. It is rate limited per wallet; a faucet drained during a demo is an avoidable failure.
+
+## Running the interface
+
+```
+cd web && npm run dev          # the dev server owns .next
+npm run build                  # writes to .next-build, never touches .next
+```
+
+Those two directories are deliberately separate. A production build sharing
+`.next` with a running dev server corrupts that server's chunk manifest
+mid-session, and the failure surfaces as a module resolution error that looks
+like a dependency problem.
+
+`./scripts/devnet-smoke.sh` runs one full lifecycle on devnet: write, bid,
+accept, wait for expiry, settle. `SMOKE_SETTLE=0` leaves the position live,
+which is how the screens get something to show. The buyer is a throwaway
+keypair in `keys/devnet-demo-buyer.json` and is a seeded counterparty; say so.
+
+The devnet premium mint is a test USDC created by `scripts/replica-mints.sh`.
+Devnet's well-known USDC faucet mint is authority-held by someone else, so no
+test balance of it can be handed out and no bid could ever be placed.

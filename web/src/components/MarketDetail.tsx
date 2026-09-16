@@ -34,6 +34,8 @@ export function MarketDetail({ market }: { market: MarketConfig }) {
   );
   const { offers, bids, refresh } = useOffers(marketAddress);
   const openCount = offers.filter((o) => o.state === "open").length;
+  const filledCount = offers.filter((o) => o.state === "filled").length;
+  const liveCount = openCount + filledCount;
   const lockedRaw = offers
     .filter((o) => o.state === "open" || o.state === "filled")
     .reduce((sum, o) => sum + o.collateralAmount, 0n);
@@ -134,9 +136,18 @@ export function MarketDetail({ market }: { market: MarketConfig }) {
             tone={status.confBps > market.maxConfBps ? "error" : undefined} />
         </Card>
         <Card className="px-5 py-4">
+          {/* "Open" alone reads as zero while a filled position sits visibly in
+              the book below. The count is of live offers, and the subtitle says
+              which are still taking bids. */}
           <Stat
-            label="Open offers" value={String(openCount)}
-            sub={openCount === 0 ? "no offers written yet" : "waiting for a bid"}
+            label="Live offers" value={String(liveCount)}
+            sub={
+              liveCount === 0
+                ? "no offers written yet"
+                : openCount === 0
+                  ? `${filledCount} filled, none taking bids`
+                  : `${openCount} taking bids${filledCount ? `, ${filledCount} filled` : ""}`
+            }
           />
         </Card>
         <Card className="px-5 py-4">
@@ -159,7 +170,7 @@ export function MarketDetail({ market }: { market: MarketConfig }) {
                     : "border-transparent text-ink-secondary hover:text-ink-primary"
                 }`}
               >
-                {t === "write" ? "Write a call" : `Offer book${openCount > 0 ? ` (${openCount})` : ""}`}
+                {t === "write" ? "Write a call" : `Offer book${liveCount > 0 ? ` (${liveCount})` : ""}`}
               </button>
             ))}
           </div>
