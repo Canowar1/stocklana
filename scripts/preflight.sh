@@ -25,6 +25,14 @@ else
   [ "$CLUSTER" = localnet ] && note "start it with ./scripts/fork.sh"
 fi
 
+# Whether this is a fresh deploy decides how much SOL is actually needed, so
+# it is worked out before the balance is judged.
+fresh_deploy=1
+if [ -f "$PROGRAM_KEYPAIR" ] && solana account "$(solana address -k "$PROGRAM_KEYPAIR")" \
+     --url "$RPC_URL" >/dev/null 2>&1; then
+  fresh_deploy=0
+fi
+
 if [ -z "$DEPLOYER_KEYPAIR" ]; then
   bad "DEPLOYER_KEYPAIR is not set"
   note "copy .env.example to .env and point it at your funded keypair"
@@ -39,11 +47,15 @@ else
   if [ -z "$balance" ]; then
     bad "could not read deployer balance"
   else
-    need=3.5
+    # A fresh deploy pays rent for the whole program account. An upgrade writes
+    # into an account whose rent is already paid, so it costs transaction fees
+    # and a temporary buffer, not another 3.5 SOL.
+    if [ "$fresh_deploy" -eq 1 ]; then need=3.5; kind="a first deploy"
+    else need=0.5; kind="an upgrade"; fi
     if awk -v b="$balance" -v n="$need" 'BEGIN{exit !(b+0 >= n+0)}'; then
-      pass "deployer balance ${balance} SOL"
+      pass "deployer balance ${balance} SOL, enough for ${kind}"
     else
-      bad "deployer balance ${balance} SOL, a first deploy needs about ${need}"
+      bad "deployer balance ${balance} SOL, ${kind} needs about ${need}"
       note "fund $addr at https://faucet.solana.com"
     fi
   fi

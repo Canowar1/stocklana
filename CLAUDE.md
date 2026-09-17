@@ -137,3 +137,20 @@ keypair in `keys/devnet-demo-buyer.json` and is a seeded counterparty; say so.
 The devnet premium mint is a test USDC created by `scripts/replica-mints.sh`.
 Devnet's well-known USDC faucet mint is authority-held by someone else, so no
 test balance of it can be handed out and no bid could ever be placed.
+
+## Tests
+
+```
+./scripts/test-unit.sh    # settlement math, including nine proptest properties
+./scripts/test-fork.sh    # 11 integration tests on a mainnet fork
+```
+
+The property tests are not decoration. They found that `adjust_strike` could
+truncate a strike to zero under an extreme multiplier ratio, and a zero strike
+pays the buyer the entire collateral. Keep them in any change to `math.rs`.
+
+`tests/extensions.ts` builds its own Token-2022 mint with the xStocks extension
+set and holds every authority, which is what makes it possible to pause a mint
+and move a multiplier mid-position. The forked real mint cannot be used for
+that: its pausable and scaled-amount authorities belong to the issuer, and only
+the mint authority is patched in the fixtures.

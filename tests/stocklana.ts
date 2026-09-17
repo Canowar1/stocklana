@@ -162,6 +162,11 @@ describe("stocklana", () => {
     }
     assert.equal(await bal(bidVaultPda(offer, alice.publicKey), TOKEN_PROGRAM_ID), 40e6);
 
+    // Deltas, not absolute balances: the fee destination is the payer's USDC
+    // account and other suites on the same validator also pay into it.
+    const writerBefore = await bal(writerUsdc, TOKEN_PROGRAM_ID);
+    const feeBefore = await bal(feeDest, TOKEN_PROGRAM_ID);
+
     await program.methods.acceptBid()
       .accountsPartial({ writer: writer.publicKey, config, market, offer,
         bid: bidPda(offer, alice.publicKey), bidVault: bidVaultPda(offer, alice.publicKey),
@@ -170,8 +175,8 @@ describe("stocklana", () => {
       .signers([writer]).rpc();
 
     // 40 USDC premium, 50 bps fee.
-    assert.equal(await bal(writerUsdc, TOKEN_PROGRAM_ID), 39.8e6);
-    assert.equal(await bal(feeDest, TOKEN_PROGRAM_ID), 0.2e6);
+    assert.equal(await bal(writerUsdc, TOKEN_PROGRAM_ID), writerBefore + 39.8e6);
+    assert.equal(await bal(feeDest, TOKEN_PROGRAM_ID), feeBefore + 0.2e6);
 
     const bobBefore = await bal(bobUsdc, TOKEN_PROGRAM_ID);
     await program.methods.refundBid()

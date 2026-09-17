@@ -40,6 +40,8 @@ pub enum StocklanaError {
     Unauthorized,
     #[msg("Arithmetic overflow")]
     MathOverflow,
+    #[msg("The corporate-action adjustment would reduce the strike to zero")]
+    StrikeAdjustedToZero,
     #[msg("Collateral amount must be greater than zero")]
     ZeroCollateral,
     #[msg("Strike must be greater than zero")]

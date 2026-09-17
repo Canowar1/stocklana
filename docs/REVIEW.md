@@ -90,7 +90,7 @@ Stated because a review that only lists problems is not informative:
 
 ## Before mainnet
 
-1. Fuzz `settlement_split` and `adjust_strike` with Trident across the full `u64` range.
+1. ~~Fuzz `settlement_split` and `adjust_strike`.~~ **Done**, with `proptest`: nine properties over twenty thousand cases each. It found a hazard the hand-written cases missed, where an extreme multiplier ratio could truncate a strike to zero and hand the buyer the entire collateral. The program now refuses instead. Fuzzing the instruction surface with Trident remains open.
 2. Have the upgrade authority be a multisig, not a single key. The current devnet deployer is a single key whose secret was pasted into a chat, so it must not be reused on mainnet.
 3. Decide whether the upgrade authority is retained or burned. Retaining it means users trust the holder; burning it means no bug can ever be fixed.
 4. Re-check `max_conf_bps` and `max_staleness_secs` per market against the real feed behaviour rather than the single value used everywhere today.

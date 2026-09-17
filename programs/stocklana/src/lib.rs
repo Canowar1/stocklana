@@ -55,6 +55,50 @@ pub mod stocklana {
         Ok(())
     }
 
+    /// Changes the protocol parameters. Every field is optional so a caller
+    /// can move one without restating the others.
+    ///
+    /// This exists because the fee destination is a token account that can be
+    /// closed by its owner. Without a way to repoint it, a closed fee account
+    /// makes every `accept_bid` fail permanently and the only remedy is a
+    /// program upgrade, which is a heavy answer to a routine accident.
+    ///
+    /// It cannot reach a live position. Offers carry their own terms, and
+    /// `min_duration` and `fee_bps` are read when a call is written and when a
+    /// bid is accepted, never at settlement.
+    pub fn update_config(
+        ctx: Context<UpdateConfig>,
+        fee_bps: Option<u16>,
+        min_duration: Option<i64>,
+        new_authority: Option<Pubkey>,
+    ) -> Result<()> {
+        let c = &mut ctx.accounts.config;
+
+        if let Some(bps) = fee_bps {
+            require!(bps <= 10_000, StocklanaError::FeeTooHigh);
+            c.fee_bps = bps;
+        }
+        if let Some(d) = min_duration {
+            require!(d > 0, StocklanaError::ExpiryTooSoon);
+            c.min_duration = d;
+        }
+        if let Some(dest) = &ctx.accounts.fee_destination {
+            c.fee_destination = dest.key();
+        }
+        if let Some(a) = new_authority {
+            require_keys_neq!(a, Pubkey::default(), StocklanaError::Unauthorized);
+            c.authority = a;
+        }
+
+        emit!(ConfigUpdated {
+            authority: c.authority,
+            fee_bps: c.fee_bps,
+            fee_destination: c.fee_destination,
+            min_duration: c.min_duration,
+        });
+        Ok(())
+    }
+
     /// Registers an underlying and its oracle. The feed account is verified
     /// here so that `settle` can trust the market record later.
     pub fn add_market(
@@ -636,6 +680,22 @@ pub struct AddMarket<'info> {
 }
 
 #[derive(Accounts)]
+pub struct UpdateConfig<'info> {
+    pub authority: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"config"],
+        bump = config.bump,
+        has_one = authority @ StocklanaError::Unauthorized
+    )]
+    pub config: Account<'info, Config>,
+    /// Pass to repoint the fee destination; omit to leave it alone. It must
+    /// hold the premium mint, or the first accepted bid after the change would
+    /// be the thing that discovers the mistake.
+    pub fee_destination: Option<InterfaceAccount<'info, TokenAccount>>,
+}
+
+#[derive(Accounts)]
 pub struct SetMarketEnabled<'info> {
     pub authority: Signer<'info>,
     #[account(
@@ -928,6 +988,14 @@ pub struct Reclaim<'info> {
 }
 
 // ------------------------------------------------------------------ events
+
+#[event]
+pub struct ConfigUpdated {
+    pub authority: Pubkey,
+    pub fee_bps: u16,
+    pub fee_destination: Pubkey,
+    pub min_duration: i64,
+}
 
 #[event]
 pub struct CallWritten {

@@ -29,7 +29,20 @@ pub fn adjust_strike(strike: u64, mult_at_write: f64, mult_now: f64) -> Result<u
         adjusted.is_finite() && adjusted >= 0.0 && adjusted <= u64::MAX as f64,
         StocklanaError::MathOverflow
     );
-    Ok(adjusted as u64)
+    let adjusted = adjusted as u64;
+
+    // A non-zero strike must never adjust to zero. A zero strike means the
+    // buyer receives the entire collateral at any positive price, because
+    // `collateral * (S - 0) / S` is the whole of it, so a truncation here
+    // would silently turn a covered call into an outright transfer. Reaching
+    // this needs a corporate action of a scale at which the position has no
+    // sensible settlement anyway, and refusing is the safe direction: the
+    // collateral stays where it is and a human decides.
+    require!(
+        strike == 0 || adjusted > 0,
+        StocklanaError::StrikeAdjustedToZero
+    );
+    Ok(adjusted)
 }
 
 /// Splits the collateral between buyer and writer at settlement.
@@ -92,6 +105,153 @@ pub fn premium_split(amount: u64, fee_bps: u16) -> Result<(u64, u64)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
+
+    /// Properties, checked against generated inputs rather than the handful of
+    /// cases a person thinks of. These two functions decide who gets paid, and
+    /// they run on u128 intermediates and an f64 ratio, which is exactly the
+    /// combination where a hand-written case set is least convincing.
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(20_000))]
+
+        /// The invariant the whole product rests on. If this can be broken at
+        /// any price, the vault can owe more than it holds and the position is
+        /// no longer non-liquidatable.
+        #[test]
+        fn payout_never_exceeds_collateral(
+            collateral in 1u64..=u64::MAX / 2,
+            settle in 1u64..=u64::MAX / 2,
+            strike in 0u64..=u64::MAX / 2,
+        ) {
+            let (payout, remainder) = settlement_split(collateral, settle, strike).unwrap();
+            prop_assert!(payout <= collateral);
+            prop_assert_eq!(payout.checked_add(remainder), Some(collateral));
+        }
+
+        /// Nothing is created or destroyed in the split.
+        #[test]
+        fn the_split_conserves_the_collateral(
+            collateral in 0u64..=1_000_000_000_000_000u64,
+            settle in 1u64..=100_000_000_000_000u64,
+            strike in 0u64..=100_000_000_000_000u64,
+        ) {
+            let (payout, remainder) = settlement_split(collateral, settle, strike).unwrap();
+            prop_assert_eq!(payout + remainder, collateral);
+        }
+
+        /// At or below the strike the buyer receives nothing at all.
+        #[test]
+        fn out_of_the_money_pays_the_buyer_nothing(
+            collateral in 0u64..=1_000_000_000_000_000u64,
+            settle in 1u64..=100_000_000_000_000u64,
+            over in 0u64..=100_000_000_000_000u64,
+        ) {
+            let strike = settle.saturating_add(over);
+            let (payout, remainder) = settlement_split(collateral, settle, strike).unwrap();
+            prop_assert_eq!(payout, 0);
+            prop_assert_eq!(remainder, collateral);
+        }
+
+        /// A higher settlement price never pays the buyer less. A break here
+        /// would mean a buyer could be worse off for being more right.
+        #[test]
+        fn the_payout_is_monotonic_in_the_settlement_price(
+            collateral in 1u64..=1_000_000_000_000u64,
+            strike in 1u64..=1_000_000_000_000u64,
+            a in 1u64..=1_000_000_000_000u64,
+            b in 1u64..=1_000_000_000_000u64,
+        ) {
+            let (lo, hi) = if a <= b { (a, b) } else { (b, a) };
+            let (pay_lo, _) = settlement_split(collateral, lo, strike).unwrap();
+            let (pay_hi, _) = settlement_split(collateral, hi, strike).unwrap();
+            prop_assert!(pay_hi >= pay_lo);
+        }
+
+        /// Rounding is always in the writer's favour, and never by more than
+        /// one base unit. Both halves matter: a bias is acceptable, an
+        /// unbounded one is not.
+        #[test]
+        fn rounding_favours_the_writer_by_less_than_one_unit(
+            collateral in 1u64..=1_000_000_000_000u64,
+            strike in 1u64..=1_000_000_000u64,
+            extra in 1u64..=1_000_000_000u64,
+        ) {
+            let settle = strike.saturating_add(extra);
+            let (payout, _) = settlement_split(collateral, settle, strike).unwrap();
+            let exact = (collateral as u128) * ((settle - strike) as u128) / (settle as u128);
+            prop_assert!(payout as u128 <= exact);
+            prop_assert!(exact - payout as u128 <= 1);
+        }
+
+        /// Adjusting a strike and then adjusting it back lands where it
+        /// started, within the precision f64 can carry. The multiplier arrives
+        /// as an f64 from the mint, so the float cannot be avoided; what can
+        /// be checked is that it does not drift.
+        ///
+        /// Where the adjustment would truncate a non-zero strike to zero the
+        /// function refuses instead, and the property accepts that refusal.
+        /// The fuzzer found that case, and the refusal is why it is not a hole.
+        #[test]
+        fn the_strike_adjustment_round_trips_or_refuses(
+            strike in 1u64..=100_000_000_000_000u64,
+            a in 0.001f64..=1000.0f64,
+            b in 0.001f64..=1000.0f64,
+        ) {
+            let Ok(there) = adjust_strike(strike, a, b) else { return Ok(()); };
+            prop_assert!(there > 0, "a non-zero strike must never adjust to zero");
+            let Ok(back) = adjust_strike(there, b, a) else { return Ok(()); };
+            let drift = (back as f64 - strike as f64).abs();
+            prop_assert!(drift <= (strike as f64) * 1e-9 + 2.0,
+                "strike {} went to {} and came back {}", strike, there, back);
+        }
+
+        /// Stated on its own, because it is the property that keeps a vault
+        /// from being handed to the buyer by a rounding step.
+        #[test]
+        fn a_non_zero_strike_never_becomes_zero(
+            strike in 1u64..=u64::MAX / 2,
+            a in 1e-6f64..=1e6f64,
+            b in 1e-6f64..=1e6f64,
+        ) {
+            if let Ok(adjusted) = adjust_strike(strike, a, b) {
+                prop_assert!(adjusted > 0);
+            }
+        }
+
+        /// An unchanged multiplier must leave the strike untouched, exactly,
+        /// with no float anywhere near it.
+        #[test]
+        fn an_unchanged_multiplier_leaves_the_strike_alone(
+            strike in 0u64..=u64::MAX,
+            m in 0.001f64..=1000.0f64,
+        ) {
+            prop_assert_eq!(adjust_strike(strike, m, m).unwrap(), strike);
+        }
+
+        /// The premium is split and nothing goes missing, and the fee is never
+        /// more than the premium.
+        #[test]
+        fn the_premium_split_conserves_the_premium(
+            amount in 0u64..=u64::MAX / 10_001,
+            bps in 0u16..=10_000u16,
+        ) {
+            let (to_writer, fee) = premium_split(amount, bps).unwrap();
+            prop_assert_eq!(to_writer + fee, amount);
+            prop_assert!(fee <= amount);
+        }
+
+        /// The confidence gate is a pure comparison and must never panic,
+        /// whatever the oracle reports.
+        #[test]
+        fn the_confidence_gate_never_panics(
+            price in 1u64..=u64::MAX,
+            conf in 0u64..=u64::MAX,
+            max_bps in 0u16..=u16::MAX,
+        ) {
+            let _ = require_confidence(price, conf, max_bps);
+        }
+    }
+
 
     #[test]
     fn in_the_money_matches_the_worked_example() {
