@@ -36,7 +36,10 @@ Two supporting changes made this possible. `scripts/build.sh` now engages the `H
 
 ### The mirror has a heartbeat and a supervisor
 
-The relayer now records `last_pushed_at` on-chain, by the target chain's clock, separately from the source publish time it copies. Those two being one field was the reason a dead relayer was invisible: a source that has not printed since Friday and a relayer that died on Saturday look identical from the price alone.
+Deployed and running. On devnet the activity screen now shows, for each mirrored feed, that the source last printed five days ago and the mirror last pushed thirty-seven seconds ago. Those are two different facts and only one of them means something is broken.
+
+
+The relayer records `last_pushed_at` on-chain, by the target chain's clock, separately from the source publish time it copies. Those two being one field was the reason a dead relayer was invisible: a source that has not printed since Friday and a relayer that died on Saturday look identical from the price alone.
 
 The activity screen reads it. A mirrored feed shows when the mirror last pushed and how many pushes it has made, and turns red past fifteen minutes. `scripts/mirror-service.sh` supervises the relayer with exponential backoff that resets after a healthy run, and `deploy/fi.stocklana.mirror.plist` runs that under launchd.
 
@@ -63,18 +66,6 @@ Not a crash and not an exploit of the vault. An economic one, which is the kind 
 ### An unsold offer locked collateral for its whole term
 
 `reclaim` required expiry. Write a thirty-day call, get no bids in the first hour, and the collateral was stuck for thirty days. The expiry check was never doing any work: `Open` already means no bid was accepted, so no premium was taken and no counterparty exists. Removed. Bidders are unaffected because once the offer leaves `Open`, `refund_bid` lets them out.
-
----
-
-## Blocked on funding, not on work
-
-The program and the mirror are built and tested and **not yet deployed to devnet**. The deployer holds 1.07 SOL and an upgrade needs roughly 3.5 available, because the new bytes are staged in a temporary buffer whose rent is about the program's own. That rent comes back when the buffer closes, so this is a float requirement rather than a cost.
-
-Devnet currently runs the previous build. It works: three markets, live oracles, the full lifecycle. What it is missing is `close_offer`, `update_config`, the mirror heartbeat and the strike-to-zero guard.
-
-Part of the shortfall is self-inflicted and worth recording. Extending the mirror program account by a round 200,000 bytes when it needed about 58,000 cost roughly 1.4 SOL in rent that cannot be recovered, because a program account can grow and not shrink. `scripts/deploy.sh` now sizes every extend from the artifact plus a tenth, and `scripts/reclaim-buffers.sh` closes buffers stranded by a failed upgrade.
-
-To unblock: fund `HwupKzvXRfrxnfSQ3bNoYbXiWS7TWXBWURb6JpZq5kup` with about 4 devnet SOL from https://faucet.solana.com, then `./scripts/deploy.sh`.
 
 ---
 

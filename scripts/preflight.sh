@@ -47,16 +47,25 @@ else
   if [ -z "$balance" ]; then
     bad "could not read deployer balance"
   else
-    # An upgrade needs about as much free balance as a first deploy, because
-    # the new bytes are staged in a temporary buffer account whose rent is
-    # roughly the program's own. The difference is that the buffer's rent comes
-    # back when the upgrade completes. Sizing this from the artifact rather
-    # than a constant, so it stays right as the program grows.
+    # Both a first deploy and an upgrade stage the new bytes in a buffer
+    # account, and its rent is what the balance has to cover. The difference is
+    # that an upgrade gets the buffer's rent back when the buffer closes, so
+    # this is a float requirement rather than a cost.
+    #
+    # The rent rate is asked of the cluster rather than assumed. A hardcoded
+    # lamports-per-byte here was wrong by a factor of two and reported a
+    # sufficient balance as insufficient.
     if [ -f target/deploy/stocklana.so ]; then
       bytes=$(wc -c < target/deploy/stocklana.so | tr -d " ")
-      need=$(awk -v b="$bytes" 'BEGIN{printf "%.2f", (b*2*6960)/1000000000 + 0.5}')
+      buffer_rent=$(solana rent "$bytes" --url "$RPC_URL" 2>/dev/null \
+        | awk "/Rent-exempt minimum/{print \$4}")
+      if [ -n "$buffer_rent" ]; then
+        need=$(awk -v r="$buffer_rent" 'BEGIN{printf "%.2f", r + 0.5}')
+      else
+        need=4.0
+      fi
     else
-      need=3.5
+      need=4.0
     fi
     if [ "$fresh_deploy" -eq 1 ]; then kind="a first deploy"
     else kind="an upgrade, refunded when the buffer closes"; fi

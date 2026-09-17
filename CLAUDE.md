@@ -160,6 +160,9 @@ the mint authority is patched in the fixtures.
 An upgrade needs roughly as much free balance as a first deploy, because the new
 bytes are staged in a temporary buffer whose rent is about the program's own. It
 comes back when the buffer closes, so it is a float requirement, not a cost.
+`scripts/preflight.sh` asks the cluster for the exact figure with `solana rent`
+rather than assuming a lamports-per-byte rate; a hardcoded one was wrong by a
+factor of two and reported a sufficient balance as insufficient.
 
 Extending a program account **cannot be undone**. It can grow and not shrink, and
 the rent is gone. Extending by a round 200,000 bytes when 58,000 was needed cost
