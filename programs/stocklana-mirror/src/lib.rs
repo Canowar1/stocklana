@@ -34,7 +34,31 @@ pub mod stocklana_mirror {
         let f = &mut ctx.accounts.feed;
         f.authority = ctx.accounts.authority.key();
         f.feed_id = feed_id;
+        f.last_pushed_at = 0;
         f.bump = ctx.bumps.feed;
+        Ok(())
+    }
+
+    /// Empties an account this program owns, returning its rent.
+    ///
+    /// Needed because a `MirrorFeed` written under an older layout cannot be
+    /// loaded by any typed instruction, which is exactly the account that most
+    /// needs clearing. Authorised by the upgrade authority, which grants no
+    /// power that authority did not already have, and touches nothing but this
+    /// program's own accounts.
+    pub fn admin_close(ctx: Context<AdminCloseAccounts>) -> Result<()> {
+        let target = &ctx.accounts.target;
+        let dest = &ctx.accounts.authority;
+        let lamports = target.lamports();
+        **target.try_borrow_mut_lamports()? = 0;
+        **dest.try_borrow_mut_lamports()? = dest
+            .lamports()
+            .checked_add(lamports)
+            .ok_or(MirrorError::BadPrice)?;
+        let mut data = target.try_borrow_mut_data()?;
+        for byte in data.iter_mut().take(8) {
+            *byte = 0;
+        }
         Ok(())
     }
 
@@ -68,6 +92,7 @@ pub mod stocklana_mirror {
 
         let f = &mut ctx.accounts.feed;
         f.last_publish_time = publish_time;
+        f.last_pushed_at = Clock::get()?.unix_timestamp;
         f.updates = f.updates.saturating_add(1);
 
         let mut data = ctx.accounts.price_account.try_borrow_mut_data()?;
@@ -85,9 +110,29 @@ pub mod stocklana_mirror {
         data[o..o + 8].copy_from_slice(&ema_price.to_le_bytes()); o += 8;
         data[o..o + 8].copy_from_slice(&ema_conf.to_le_bytes());
 
-        emit!(PriceMirrored { feed_id, price, conf, publish_time });
+        emit!(PriceMirrored {
+            feed_id, price, conf, publish_time,
+            pushed_at: f.last_pushed_at,
+        });
         Ok(())
     }
+}
+
+#[derive(Accounts)]
+pub struct AdminCloseAccounts<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    /// CHECK: must be owned by this program; emptied and its discriminator
+    /// wiped. Guarded by the upgrade-authority constraint below.
+    #[account(mut, owner = crate::ID @ MirrorError::Unauthorized)]
+    pub target: UncheckedAccount<'info>,
+    #[account(constraint = program.programdata_address()? == Some(program_data.key()))]
+    pub program: Program<'info, program::StocklanaMirror>,
+    #[account(
+        constraint = program_data.upgrade_authority_address == Some(authority.key())
+            @ MirrorError::Unauthorized
+    )]
+    pub program_data: Account<'info, ProgramData>,
 }
 
 #[account]
@@ -95,7 +140,13 @@ pub mod stocklana_mirror {
 pub struct MirrorFeed {
     pub authority: Pubkey,
     pub feed_id: [u8; 32],
+    /// Publish time of the source observation, copied from mainnet.
     pub last_publish_time: i64,
+    /// When the relayer last pushed, by this chain's clock. Distinct from the
+    /// field above and the distinction is the whole point: a source that has
+    /// not printed since Friday and a relayer that died on Saturday look
+    /// identical from the price alone. This is the relayer's heartbeat.
+    pub last_pushed_at: i64,
     pub updates: u64,
     pub bump: u8,
 }
@@ -149,6 +200,7 @@ pub struct PriceMirrored {
     pub price: i64,
     pub conf: u64,
     pub publish_time: i64,
+    pub pushed_at: i64,
 }
 
 #[error_code]

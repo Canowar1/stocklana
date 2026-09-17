@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Runs the devnet price mirror as a background service on macOS.
+
+  Install:
+    sed -i '' "s|REPO_PATH|$PWD|g" deploy/fi.stocklana.mirror.plist
+    cp deploy/fi.stocklana.mirror.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/fi.stocklana.mirror.plist
+
+  Stop:
+    launchctl unload ~/Library/LaunchAgents/fi.stocklana.mirror.plist
+
+  KeepAlive restarts it if it exits for any reason, and the supervisor inside
+  scripts/mirror-service.sh handles the faster failures without churning
+  through launchd.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>fi.stocklana.mirror</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>REPO_PATH/scripts/mirror-service.sh</string>
+  </array>
+  <key>WorkingDirectory</key><string>REPO_PATH</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/tmp/stocklana-mirror.out.log</string>
+  <key>StandardErrorPath</key><string>/tmp/stocklana-mirror.err.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>MIRROR_INTERVAL_MS</key><string>60000</string>
+  </dict>
+</dict>
+</plist>

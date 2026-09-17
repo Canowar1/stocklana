@@ -12,7 +12,9 @@
     "setup:markets": "./scripts/setup-markets.sh",
     "import:key": "./scripts/import-key.sh",
     "verify": "./scripts/verify.sh",
-    "teardown": "./scripts/teardown.sh"
+    "teardown": "./scripts/teardown.sh",
+    "mirror": "./scripts/mirror.sh --watch",
+    "mirror:service": "./scripts/mirror-service.sh"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",

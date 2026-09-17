@@ -32,6 +32,13 @@ declare_id!("EZRD9fkVxxQy97Ls35vDsnhQ1Tn8b6HagWeXV8GyqgNQ");
 /// overflow the u128 intermediates.
 pub const MAX_UNDERLYING_DECIMALS: u8 = 18;
 
+/// How long a closed offer stays readable on-chain before its writer may
+/// reclaim the rent. Thirty days is long enough that anyone who cared about a
+/// position has seen it, and the receipt outlives the account regardless: the
+/// `Settled` event carries the price, the adjusted strike, the publish time,
+/// the confidence and the split, and transaction history does not expire.
+pub const ARCHIVE_DELAY_SECS: i64 = 30 * 24 * 60 * 60;
+
 #[program]
 pub mod stocklana {
     use super::*;
@@ -499,6 +506,34 @@ pub mod stocklana {
         Ok(())
     }
 
+    /// Returns the rent of a finished offer to the writer who paid it.
+    ///
+    /// The `Offer` account is deliberately kept after settlement, because it is
+    /// the receipt: the price used, the strike after any corporate-action
+    /// adjustment, and how the collateral was split. Keeping every one of them
+    /// forever is a cost that only grows, and a writer who no longer needs the
+    /// convenience copy should be able to stop paying for it.
+    ///
+    /// Only the writer, only after the offer has settled or been reclaimed, and
+    /// only once the archive window has passed. Nobody can make a receipt
+    /// disappear from under a counterparty who is still looking at it.
+    pub fn close_offer(ctx: Context<CloseOffer>) -> Result<()> {
+        let offer = &ctx.accounts.offer;
+        require!(
+            offer.state == OfferState::Settled || offer.state == OfferState::Reclaimed,
+            StocklanaError::BadOfferState
+        );
+        let now = Clock::get()?.unix_timestamp;
+        require!(
+            now >= offer
+                .expiry_ts
+                .checked_add(ARCHIVE_DELAY_SECS)
+                .ok_or(StocklanaError::MathOverflow)?,
+            StocklanaError::ArchiveWindowOpen
+        );
+        Ok(())
+    }
+
     /// Escape hatch for an account this program owns that no longer matches the
     /// struct it was written with, which is what happens when a layout changes
     /// before launch. Typed instructions cannot touch such an account at all,
@@ -912,6 +947,18 @@ pub struct Settle<'info> {
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CloseOffer<'info> {
+    #[account(mut)]
+    pub writer: Signer<'info>,
+    #[account(
+        mut,
+        close = writer,
+        has_one = writer @ StocklanaError::Unauthorized
+    )]
+    pub offer: Account<'info, Offer>,
 }
 
 #[derive(Accounts)]

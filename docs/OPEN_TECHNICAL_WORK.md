@@ -20,7 +20,25 @@ Nine properties over twenty thousand generated cases each, with `proptest`. The 
 
 This is the argument for fuzzing in one paragraph. Seven hand-written cases had passed for days.
 
-**Still open:** this covers the pure math. Fuzzing the *instruction surface*, which is what Trident does, is a separate job and is not done.
+**Still open:** this covers the pure math. Fuzzing the *instruction surface*, which is what Trident does, is a separate job and is not done. It is the only substantial testing gap left.
+
+### Settled receipts have an archive path
+
+`close_offer` returns the rent of a finished offer to the writer who paid it. Only the writer, only once the offer has settled or been reclaimed, and only thirty days after expiry. Nobody can make a receipt disappear from under a counterparty still reading it, and the receipt outlives the account either way: the `Settled` event carries the price, the adjusted strike, the publish time, the confidence and the split, and transaction history does not expire.
+
+The pressure that made this matter is also gone. The offer book now filters at the RPC node with a `memcmp` on the market field instead of fetching every offer the program has ever written and filtering in the browser, so the response is proportional to one market rather than to the protocol's whole history.
+
+### Continuous integration runs on every push
+
+`.github/workflows/ci.yml` has three jobs. The math job runs the unit and property tests with no toolchain and no network, so a broken invariant is reported in under a minute. The program job installs the Solana toolchain and Anchor, boots the mainnet fork and runs the twelve integration tests. The web job type-checks and builds the interface.
+
+Two supporting changes made this possible. `scripts/build.sh` now engages the `HOME` redirect **only when `~/.cache` is not writable**, which is this one developer's machine; on CI the redirect is skipped and the real cargo cache is used. And the fork's mainnet endpoint reads `MAINNET_RPC_URL`, so CI can use a private endpoint instead of being rate limited on the public one.
+
+### The mirror has a heartbeat and a supervisor
+
+The relayer now records `last_pushed_at` on-chain, by the target chain's clock, separately from the source publish time it copies. Those two being one field was the reason a dead relayer was invisible: a source that has not printed since Friday and a relayer that died on Saturday look identical from the price alone.
+
+The activity screen reads it. A mirrored feed shows when the mirror last pushed and how many pushes it has made, and turns red past fifteen minutes. `scripts/mirror-service.sh` supervises the relayer with exponential backoff that resets after a healthy run, and `deploy/fi.stocklana.mirror.plist` runs that under launchd.
 
 ### The confidence gate and the multiplier adjustment now run on-chain
 
@@ -48,33 +66,29 @@ Not a crash and not an exploit of the vault. An economic one, which is the kind 
 
 ---
 
+## Blocked on funding, not on work
+
+The program and the mirror are built and tested and **not yet deployed to devnet**. The deployer holds 1.07 SOL and an upgrade needs roughly 3.5 available, because the new bytes are staged in a temporary buffer whose rent is about the program's own. That rent comes back when the buffer closes, so this is a float requirement rather than a cost.
+
+Devnet currently runs the previous build. It works: three markets, live oracles, the full lifecycle. What it is missing is `close_offer`, `update_config`, the mirror heartbeat and the strike-to-zero guard.
+
+Part of the shortfall is self-inflicted and worth recording. Extending the mirror program account by a round 200,000 bytes when it needed about 58,000 cost roughly 1.4 SOL in rent that cannot be recovered, because a program account can grow and not shrink. `scripts/deploy.sh` now sizes every extend from the artifact plus a tenth, and `scripts/reclaim-buffers.sh` closes buffers stranded by a failed upgrade.
+
+To unblock: fund `HwupKzvXRfrxnfSQ3bNoYbXiWS7TWXBWURb6JpZq5kup` with about 4 devnet SOL from https://faucet.solana.com, then `./scripts/deploy.sh`.
+
+---
+
 ## Open, in order of what it can cost
 
-### 1. The offer book reads every account and filters in the browser
-
-`useOffers` calls `program.account.offer.all()` and `bid.all()` and filters client-side. At three offers this is invisible. At a few thousand it is a multi-megabyte response on every poll, on a public RPC endpoint that will rate limit long before that. The fix is `memcmp` filters on the market field, which the Anchor client supports directly.
-
-### 2. Everything polls; nothing subscribes
+### 1. Everything polls; nothing subscribes
 
 Oracles are polled every ten seconds and offers every twelve. Solana has account subscriptions over websocket. Polling is the right first version and the wrong permanent one: it is slower to show a change and heavier on the endpoint at the same time.
 
-### 3. Transactions are sent without simulating first
+### 2. Transactions are sent without simulating first
 
 A user signs, waits, and then learns the transaction failed. `simulate()` before `rpc()` turns most failures into a message before the wallet ever opens. The error translation in `readableError` is already there; it is being used at the wrong end of the flow.
 
-### 4. Settled offers accumulate with no archive path
-
-`Offer` is deliberately never closed, because it is the settlement receipt. That is the right call and it has a consequence nobody has planned for: the account count only grows, and item 1's query gets heavier forever. A receipt that has been read could be closed by its writer after some window, or the interface could page by state. Neither is designed.
-
-### 5. There is no continuous integration
-
-`./scripts/test-unit.sh` and `./scripts/test-fork.sh` both pass and both run only when someone remembers. A fork test needs a mainnet RPC and takes about twenty seconds, which is well within what a CI job can do on every push.
-
-### 6. The mirror relayer has no supervision
-
-`scripts/mirror.sh --watch` runs in a terminal. If it dies, devnet prices silently freeze and the only symptom is a staleness number climbing on a screen nobody is watching. It needs to run as a service, and the interface already has the right place to surface it: the feed health list on the activity screen could show when the mirror last pushed, not just when the source last printed.
-
-### 7. The faucet's rate limit is per process
+### 3. The faucet's rate limit is per process
 
 `lastClaim` is an in-memory `Map`. Restart the server and every cooldown resets; run two instances and there is no shared limit at all. Correct for a single deployment and wrong the moment there are two.
 
@@ -82,7 +96,7 @@ A user signs, waits, and then learns the transaction failed. `simulate()` before
 
 ## Deliberately not doing
 
-**Closing the `Offer` account on settlement.** It is the receipt. See item 4 for the cost, which is accepted.
+**Closing the `Offer` account automatically on settlement.** It is the receipt, and it stays until its writer chooses to archive it after the window. Doing it automatically would take the choice away from the person who paid for the account.
 
 **An `emergency_pause` on the protocol.** Tempting, and it would mean the authority can stop settlements on live positions where writers and buyers have already committed. The upgrade authority is the honest place for that power, and it is already disclosed.
 

@@ -15,8 +15,28 @@ echo
 echo "Deploying to $CLUSTER at $RPC_URL"
 echo
 
+# Grow the program account only by what the new artifact actually needs plus a
+# small margin. Extending is paid in rent and cannot be undone, so a generous
+# round number here is money spent for nothing.
+extend_if_needed() {
+  local pid="$1" artifact="$2" current new margin
+  [ -f "$artifact" ] || return 0
+  current=$(solana program show "$pid" --url "$RPC_URL" 2>/dev/null | awk "/Data Length/{print \$3}")
+  [ -n "$current" ] || return 0
+  new=$(wc -c < "$artifact" | tr -d " ")
+  margin=$(( new / 10 ))
+  if [ "$new" -gt "$current" ]; then
+    echo "  extending $pid by $(( new - current + margin )) bytes"
+    solana program extend "$pid" $(( new - current + margin )) \
+      --url "$RPC_URL" -k "$DEPLOYER_KEYPAIR" >/dev/null
+  fi
+}
+extend_if_needed "$(solana address -k "$PROGRAM_KEYPAIR")" target/deploy/stocklana.so
+[ -f keys/stocklana-mirror-keypair.json ] && extend_if_needed \
+  "$(solana address -k keys/stocklana-mirror-keypair.json)" target/deploy/stocklana_mirror.so
+
 ./scripts/build.sh
-HOME="$PWD/.buildhome" anchor deploy \
+./scripts/with-build-home.sh anchor deploy \
   --provider.cluster "$RPC_URL" \
   --provider.wallet "$DEPLOYER_KEYPAIR" \
   --program-name stocklana \
@@ -26,7 +46,7 @@ HOME="$PWD/.buildhome" anchor deploy \
 if [ "$CLUSTER" != "mainnet" ] && [ -f keys/stocklana-mirror-keypair.json ]; then
   echo
   echo "Deploying the devnet price mirror"
-  HOME="$PWD/.buildhome" anchor deploy \
+  ./scripts/with-build-home.sh anchor deploy \
     --provider.cluster "$RPC_URL" \
     --provider.wallet "$DEPLOYER_KEYPAIR" \
     --program-name stocklana-mirror \

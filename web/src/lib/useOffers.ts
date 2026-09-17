@@ -41,8 +41,16 @@ export function useOffers(marketAddress?: string) {
 
   const load = useCallback(async () => {
     try {
+      // Filtered at the RPC node, not in the browser. `offer.all()` returns
+      // every offer the program has ever written and only grows; a memcmp on
+      // the market field, which sits immediately after the discriminator,
+      // keeps the response proportional to one market instead of the protocol.
+      const offerFilter = marketAddress
+        ? [{ memcmp: { offset: 8, bytes: marketAddress } }]
+        : undefined;
+
       const [rawOffers, rawBids] = await Promise.all([
-        program.account.offer.all(),
+        program.account.offer.all(offerFilter),
         program.account.bid.all(),
       ]);
 
@@ -79,7 +87,7 @@ export function useOffers(marketAddress?: string) {
         };
       });
 
-      setOffers(marketAddress ? mapped.filter((o) => o.market === marketAddress) : mapped);
+      setOffers(mapped);
       setBids(mappedBids);
       setError(null);
     } catch (e) {

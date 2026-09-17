@@ -47,11 +47,19 @@ else
   if [ -z "$balance" ]; then
     bad "could not read deployer balance"
   else
-    # A fresh deploy pays rent for the whole program account. An upgrade writes
-    # into an account whose rent is already paid, so it costs transaction fees
-    # and a temporary buffer, not another 3.5 SOL.
-    if [ "$fresh_deploy" -eq 1 ]; then need=3.5; kind="a first deploy"
-    else need=0.5; kind="an upgrade"; fi
+    # An upgrade needs about as much free balance as a first deploy, because
+    # the new bytes are staged in a temporary buffer account whose rent is
+    # roughly the program's own. The difference is that the buffer's rent comes
+    # back when the upgrade completes. Sizing this from the artifact rather
+    # than a constant, so it stays right as the program grows.
+    if [ -f target/deploy/stocklana.so ]; then
+      bytes=$(wc -c < target/deploy/stocklana.so | tr -d " ")
+      need=$(awk -v b="$bytes" 'BEGIN{printf "%.2f", (b*2*6960)/1000000000 + 0.5}')
+    else
+      need=3.5
+    fi
+    if [ "$fresh_deploy" -eq 1 ]; then kind="a first deploy"
+    else kind="an upgrade, refunded when the buffer closes"; fi
     if awk -v b="$balance" -v n="$need" 'BEGIN{exit !(b+0 >= n+0)}'; then
       pass "deployer balance ${balance} SOL, enough for ${kind}"
     else

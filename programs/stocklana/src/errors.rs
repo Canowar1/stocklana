@@ -18,6 +18,8 @@ pub enum StocklanaError {
     NotExpired,
     #[msg("Offer has already expired")]
     OfferExpired,
+    #[msg("The archive window has not passed yet")]
+    ArchiveWindowOpen,
     #[msg("Offer is not in the required state for this instruction")]
     BadOfferState,
     #[msg("Bid is not in the required state for this instruction")]

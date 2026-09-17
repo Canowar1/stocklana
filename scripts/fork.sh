@@ -9,7 +9,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
-M=https://api.mainnet-beta.solana.com
+# A private endpoint avoids the public one's rate limits, which bite when the
+# validator clones several accounts at once. Set MAINNET_RPC_URL to use one.
+M="${MAINNET_RPC_URL:-https://api.mainnet-beta.solana.com}"
 
 exec solana-test-validator --reset --quiet \
   --url "$M" \

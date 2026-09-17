@@ -154,3 +154,17 @@ set and holds every authority, which is what makes it possible to pause a mint
 and move a multiplier mid-position. The forked real mint cannot be used for
 that: its pausable and scaled-amount authorities belong to the issuer, and only
 the mint authority is patched in the fixtures.
+
+## Deploy cost, learned the hard way
+
+An upgrade needs roughly as much free balance as a first deploy, because the new
+bytes are staged in a temporary buffer whose rent is about the program's own. It
+comes back when the buffer closes, so it is a float requirement, not a cost.
+
+Extending a program account **cannot be undone**. It can grow and not shrink, and
+the rent is gone. Extending by a round 200,000 bytes when 58,000 was needed cost
+about 1.4 devnet SOL for nothing. `scripts/deploy.sh` now sizes extends from the
+artifact; do not extend by hand.
+
+If an upgrade fails partway it can strand a buffer holding that rent.
+`./scripts/reclaim-buffers.sh` lists and closes them.

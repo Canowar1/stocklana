@@ -9,10 +9,12 @@ import { useOffers } from "@/lib/useOffers";
 import { useMarketIndex } from "@/lib/markets";
 import { formatTimestamp, formatAge, formatUsd, formatAmount } from "@/lib/format";
 import { oracleStatus } from "@/lib/pyth";
+import { useMirrorHeartbeats } from "@/lib/useMirror";
 
 export function ActivityScreen() {
   const { reads, now, loading } = useOracles(MARKETS.map((m) => m.feedAccount));
   const { offers, loading: offersLoading } = useOffers();
+  const heartbeats = useMirrorHeartbeats();
   const { byAddress } = useMarketIndex();
 
   const settled = useMemo(
@@ -91,6 +93,30 @@ export function ActivityScreen() {
                       ? `${formatUsd(read.price)} · last print ${formatTimestamp(read.publishTime)}`
                       : "no feed account on this network"}
                   </div>
+                  {/* For a mirrored feed, when the relayer last ran is a
+                      different fact from when the source last printed, and only
+                      one of them means something is broken. */}
+                  {s.isMirror && (() => {
+                    const hb = heartbeats[m.symbol];
+                    if (!hb) {
+                      return (
+                        <div className="tnum mt-0.5 text-xs text-ink-muted">
+                          mirror heartbeat unknown
+                        </div>
+                      );
+                    }
+                    const since = now - hb.lastPushedAt;
+                    const stalled = since > 15 * 60;
+                    return (
+                      <div
+                        className={`tnum mt-0.5 text-xs ${stalled ? "text-state-error" : "text-ink-muted"}`}
+                      >
+                        {stalled ? "mirror has not pushed for " : "mirror last pushed "}
+                        {formatAge(since)}
+                        {` · ${hb.updates.toLocaleString("en-US")} pushes`}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="text-right">
                   <div className={`text-sm font-medium ${s.ok ? "text-state-success" : "text-state-warning"}`}>

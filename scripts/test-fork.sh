@@ -33,7 +33,7 @@ trap 'kill $VALIDATOR 2>/dev/null || true' EXIT
 until solana cluster-version --url "$RPC_URL" >/dev/null 2>&1; do sleep 2; done
 solana airdrop 50 "$(solana address -k "$DEPLOYER_KEYPAIR")" --url "$RPC_URL" >/dev/null 2>&1
 
-HOME="$PWD/.buildhome" anchor deploy \
+./scripts/with-build-home.sh anchor deploy \
   --provider.cluster "$RPC_URL" --provider.wallet "$DEPLOYER_KEYPAIR" \
   --program-name stocklana --program-keypair "$PROGRAM_KEYPAIR" >/dev/null
 

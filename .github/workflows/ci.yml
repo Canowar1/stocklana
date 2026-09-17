@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOLANA_VERSION: "2.3.13"
+  ANCHOR_VERSION: "0.32.1"
+
+jobs:
+  # Fast, no network, no toolchain. Runs first so a broken invariant is
+  # reported in under a minute rather than after a program build.
+  math:
+    name: Settlement math
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Property and unit tests
+        # --locked because the lockfile is pinned deliberately: the
+        # platform-tools cargo is 1.84 and cannot parse edition2024 manifests.
+        run: cargo test --locked -p stocklana --lib
+
+  program:
+    name: Program tests on a mainnet fork
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install the Solana toolchain
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v${SOLANA_VERSION}/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Install Anchor
+        run: |
+          cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
+          avm install "${ANCHOR_VERSION}"
+          avm use "${ANCHOR_VERSION}"
+
+      - name: Install JavaScript dependencies
+        run: npm ci || npm install
+
+      - name: Local validator keypair
+        run: |
+          mkdir -p keys
+          solana-keygen new --no-bip39-passphrase --silent -o keys/localnet-payer.json
+
+      - name: Build
+        run: ./scripts/build.sh
+
+      # The fork clones the real TSLAx mint and the real Pyth account from
+      # mainnet, so this step needs a mainnet endpoint. The public one is rate
+      # limited; set MAINNET_RPC_URL in repository secrets to use a private one.
+      - name: Integration tests
+        env:
+          MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
+        run: ./scripts/test-fork.sh
+
+      - name: Validator log on failure
+        if: failure()
+        run: tail -100 /tmp/stocklana-validator.log || true
+
+  web:
+    name: Interface
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        working-directory: web
+        run: npm ci || npm install
+
+      # The interface imports the generated IDL types, so a type check needs
+      # them present. They are committed under web/src/idl for exactly this.
+      - name: Type check
+        working-directory: web
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: web
+        env:
+          NEXT_PUBLIC_CLUSTER: devnet
+        run: npm run build

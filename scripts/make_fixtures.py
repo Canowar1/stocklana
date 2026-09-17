@@ -13,7 +13,7 @@ This is a mock. It is disclosed in the README.
 """
 import base64, json, os, sys, time, urllib.request
 
-RPC = "https://api.mainnet-beta.solana.com"
+RPC = os.environ.get("MAINNET_RPC_URL") or "https://api.mainnet-beta.solana.com"
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(HERE, "fixtures")
 

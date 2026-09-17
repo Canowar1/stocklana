@@ -285,6 +285,45 @@ describe("token-2022 settlement paths", () => {
     console.log(`      refused a ${bps} bps band against a 1 bps ceiling`);
   });
 
+  it("keeps a settled receipt readable until the archive window passes", async () => {
+    const mint = await makeMint(1);
+    const market = marketPda(mint);
+    await program.methods.addMarket([...FEED_ID], WIDE_WINDOW, 100)
+      .accountsPartial({ authority: payer.publicKey, config, market, underlyingMint: mint,
+        premiumMint: USDC, feedAccount: TSLAX_FEED, systemProgram: SystemProgram.programId })
+      .rpc();
+
+    const p = await openPosition(mint, market, 4, oraclePrice * 0.9, 4);
+    await waitUntil(p.expiry);
+    await settleIx(mint, market, p.offer, p.vault, p.writerAta).rpc();
+
+    // The receipt survives settlement. Closing it immediately would let a
+    // writer erase the record a counterparty is still reading.
+    const receipt = await program.account.offer.fetch(p.offer);
+    assert.deepEqual(receipt.state, { settled: {} });
+
+    try {
+      await program.methods.closeOffer()
+        .accountsPartial({ writer: writer.publicKey, offer: p.offer })
+        .signers([writer]).rpc();
+      assert.fail("closing inside the archive window should be refused");
+    } catch (e: any) {
+      assert.include(e.toString(), "ArchiveWindowOpen");
+    }
+    assert.isNotNull(await conn.getAccountInfo(p.offer), "the receipt must still be there");
+
+    // And only its writer may ever close it.
+    try {
+      await program.methods.closeOffer()
+        .accountsPartial({ writer: buyer.publicKey, offer: p.offer })
+        .signers([buyer]).rpc();
+      assert.fail("only the writer may close the receipt");
+    } catch (e: any) {
+      assert.match(e.toString(), /Unauthorized|ConstraintHasOne/);
+    }
+    console.log("      receipt held, close refused inside the window and refused to the buyer");
+  });
+
   it("lets the authority repoint the fee destination and change the fee", async () => {
     const replacement = Keypair.generate();
     const newFeeDest = await createAssociatedTokenAccountIdempotent(
