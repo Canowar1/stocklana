@@ -1,4 +1,10 @@
 {
+  "name": "stocklana",
+  "description": "Covered calls on tokenized equity on Solana. Writers lock the stock token; any wallet bids USDC premium; settlement splits the same tokens against an on-chain Pyth price.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Canowar1/stocklana.git"
+  },
   "license": "ISC",
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
