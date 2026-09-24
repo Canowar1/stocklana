@@ -10,7 +10,6 @@ import { Card, CardHeader, Badge, Stat, AddressLink } from "./ui";
 import { OracleStatusBadge } from "./OracleCell";
 import { WriteCallForm } from "./WriteCallForm";
 import { OfferBook } from "./OfferBook";
-import { Faucet } from "./Faucet";
 import { TitleTicker } from "./TitleTicker";
 import { useOffers } from "@/lib/useOffers";
 import { pda } from "@/lib/program";
@@ -24,7 +23,7 @@ export function MarketDetail({ market }: { market: MarketConfig }) {
   const read = reads[market.feedAccount] ?? null;
   const [feedOwner, setFeedOwner] = useState<string | undefined>(undefined);
   const status = oracleStatus(read, now, market.maxStalenessSecs, market.maxConfBps, feedOwner);
-  const [tab, setTab] = useState<"write" | "book">("write");
+  const [tab, setTab] = useState<"write" | "book">("book");
   const { connection } = useConnection();
   const [feeDestination, setFeeDestination] = useState<string | null>(null);
 
@@ -89,6 +88,9 @@ export function MarketDetail({ market }: { market: MarketConfig }) {
             {status.isMirror && <Badge tone="warning" title={market.mocks}>Mirrored price</Badge>}
           </div>
           <p className="mt-1 text-sm text-ink-secondary">{market.label}</p>
+          <p className="mt-2 max-w-md text-xs leading-relaxed text-ink-muted">
+            The call sells the upside above a strike. The locked shares are the most that can be paid out.
+          </p>
         </div>
         <div className="text-right">
           {loading && !read ? (
@@ -116,61 +118,54 @@ export function MarketDetail({ market }: { market: MarketConfig }) {
               Positions on this market cannot settle right now
             </p>
             <p className="mt-0.5 text-xs leading-relaxed text-ink-secondary">
-              {status.reason}. Writing and bidding still work. Settlement is refused by the
-              program until the feed recovers, rather than executing against a price it does not
-              trust, so nothing settles at the wrong number.
+              {status.reason}. Writing and bidding still work.
             </p>
           </div>
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Card className="px-5 py-4">
           <Stat label="Oracle age" value={read ? formatAge(status.ageSecs) : "—"}
             sub={`limit ${market.maxStalenessSecs}s`}
             tone={status.ageSecs > market.maxStalenessSecs ? "warning" : undefined} />
         </Card>
         <Card className="px-5 py-4">
-          <Stat label="Confidence" value={read ? `±${status.confBps} bps` : "—"}
-            sub={`limit ±${market.maxConfBps} bps`}
-            tone={status.confBps > market.maxConfBps ? "error" : undefined} />
-        </Card>
-        <Card className="px-5 py-4">
-          {/* "Open" alone reads as zero while a filled position sits visibly in
-              the book below. The count is of live offers, and the subtitle says
-              which are still taking bids. */}
           <Stat
             label="Live offers" value={String(liveCount)}
             sub={
               liveCount === 0
-                ? "no offers written yet"
+                ? "none yet"
                 : openCount === 0
-                  ? `${filledCount} filled, none taking bids`
+                  ? `${filledCount} filled`
                   : `${openCount} taking bids${filledCount ? `, ${filledCount} filled` : ""}`
             }
           />
-        </Card>
-        <Card className="px-5 py-4">
-          <Stat label="Protocol fee" value="50 bps" sub="on accepted premium only" />
         </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <Card as="section">
-          <div className="flex border-b border-line-secondary" role="tablist">
-            {(["write", "book"] as const).map((t) => (
+          <div className="grid gap-px border-b border-line-secondary bg-line-secondary sm:grid-cols-2" role="tablist" aria-label="Strategy">
+            {([
+              ["write", "Sell the upside", "You hold the stock. Lock it, pick a strike, and take USDC for everything above it."],
+              ["book", "Buy capped upside", "You do not hold it. Bid USDC. If it finishes below the strike you lose the premium, and nothing else."],
+            ] as const).map(([t, title, body]) => (
               <button
                 key={t}
                 role="tab"
                 aria-selected={tab === t}
                 onClick={() => setTab(t)}
-                className={`min-h-[48px] cursor-pointer border-b-2 px-5 text-sm font-medium transition-colors ${
-                  tab === t
-                    ? "border-brand text-ink-primary"
-                    : "border-transparent text-ink-secondary hover:text-ink-primary"
+                className={`min-h-[48px] cursor-pointer px-5 py-4 text-left transition-colors ${
+                  tab === t ? "bg-bg-tertiary" : "bg-bg-secondary hover:bg-bg-tertiary/70"
                 }`}
               >
-                {t === "write" ? "Write a call" : `Offer book${liveCount > 0 ? ` (${liveCount})` : ""}`}
+                <span className={`block text-sm font-medium ${tab === t ? "text-ink-primary" : "text-ink-secondary"}`}>
+                  {title}
+                </span>
+                <span className="mt-1 block text-xs font-normal leading-relaxed text-ink-muted">
+                  {body}
+                </span>
               </button>
             ))}
           </div>
@@ -191,50 +186,21 @@ export function MarketDetail({ market }: { market: MarketConfig }) {
         </Card>
 
         <div className="space-y-4">
-          <Faucet />
-
-          <Card as="section">
-            <CardHeader title="How settlement works" />
-            <div className="space-y-3 px-5 py-4 text-xs leading-relaxed text-ink-secondary">
-              <p>
-                At expiry the program reads this market&apos;s oracle account and splits the locked
-                collateral. The buyer receives
-                {" "}<span className="tnum text-ink-primary">collateral × (S − K) ÷ S</span>{" "}
-                of the underlying, and the writer keeps the rest.
-              </p>
-              <p>
-                That fraction is always below one, so the vault can never owe more than it holds.
-                This is why the position has no liquidation price.
-              </p>
-              <p>
-                If the underlying goes through a corporate action, the strike is adjusted by the
-                mint&apos;s multiplier before the split, so a stock split does not silently reprice
-                the position.
-              </p>
-            </div>
-          </Card>
-
           <Card as="section">
             <CardHeader title="Accounts" />
             <dl className="space-y-3 px-5 py-4 text-xs">
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-ink-muted">Underlying mint</dt>
+                <dt className="text-ink-muted">Mint</dt>
                 <dd><AddressLink address={market.underlyingMint} /></dd>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-ink-muted">Oracle account</dt>
+                <dt className="text-ink-muted">Oracle</dt>
                 <dd><AddressLink address={market.feedAccount} /></dd>
-              </div>
-              <div className="flex items-start justify-between gap-3">
-                <dt className="shrink-0 text-ink-muted">Feed id</dt>
-                <dd className="tnum break-all text-right text-ink-secondary">
-                  {market.feedId.slice(0, 16)}…
-                </dd>
               </div>
             </dl>
             {market.mocks !== "none" && (
-              <p className="border-t border-line-secondary px-5 py-3 text-xs leading-relaxed text-state-warning">
-                {market.mocks}
+              <p className="border-t border-line-secondary px-5 py-3 text-xs text-state-warning">
+                Mirrored price. Owner check is still enforced on-chain.
               </p>
             )}
           </Card>

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useOffers } from "@/lib/useOffers";
@@ -12,11 +11,7 @@ import { formatAmount, formatUsd } from "@/lib/format";
 import { Card, CardHeader, EmptyState, Button, Stat } from "./ui";
 import { PositionCard, Role } from "./PositionCard";
 import { IconPositions, IconArrowRight, IconWarning } from "./icons";
-
-const WalletButton = dynamic(
-  () => import("@solana/wallet-adapter-react-ui").then((m) => m.WalletMultiButton),
-  { ssr: false, loading: () => <div className="h-11 w-36 rounded-lg bg-bg-tertiary" /> },
-);
+import { ConnectButton } from "./ConnectButton";
 
 export function PositionsScreen() {
   const { connected, publicKey } = useWallet();
@@ -66,10 +61,6 @@ export function PositionsScreen() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold tracking-tight text-ink-primary">Positions</h1>
-        <p className="mt-1 max-w-2xl text-sm leading-relaxed text-ink-secondary">
-          Calls you have written, calls you have bought, and bids you are holding, with the
-          settlement receipt for each one that has closed.
-        </p>
       </div>
 
       {!connected ? (
@@ -77,8 +68,8 @@ export function PositionsScreen() {
           <EmptyState
             icon={<IconPositions className="h-8 w-8" />}
             title="Connect a wallet"
-            body="Positions are read from the chain by owner, so nothing is shown until a wallet is connected."
-            action={<WalletButton />}
+            body="Connect to see calls you wrote or bought."
+            action={<ConnectButton />}
           />
         </Card>
       ) : (
@@ -112,10 +103,9 @@ export function PositionsScreen() {
               <IconWarning className="mt-0.5 h-4 w-4 shrink-0 text-state-warning" />
               <p className="text-xs leading-relaxed text-ink-secondary">
                 <span className="font-medium text-ink-primary">
-                  {needsAction.length} position{needsAction.length === 1 ? "" : "s"} past expiry.
+                  {needsAction.length} past expiry.
                 </span>{" "}
-                Settlement is permissionless, so anyone can close them, but nothing happens on its
-                own. Until someone triggers it the collateral stays locked.
+                Settle to split the collateral.
               </p>
             </Card>
           )}
@@ -125,9 +115,7 @@ export function PositionsScreen() {
           )}
 
           <Card as="section">
-            <CardHeader
-              title="Open" description="Written or bought and not yet closed."
-            />
+            <CardHeader title="Open" />
             {loading && mine.active.length === 0 ? (
               <div className="space-y-2 px-5 py-6">
                 {[0, 1].map((i) => (
@@ -138,7 +126,7 @@ export function PositionsScreen() {
               <EmptyState
                 icon={<IconPositions className="h-8 w-8" />}
                 title="Nothing open"
-                body="Positions appear here once you write a call, bid on one, or take one from the offer book."
+                body="Write a call or bid on the book."
                 action={
                   <Link href="/">
                     <Button variant="secondary">
@@ -162,10 +150,7 @@ export function PositionsScreen() {
 
           {mine.closed.length > 0 && (
             <Card as="section">
-              <CardHeader
-                title="Closed"
-                description="Each one keeps the price that decided it, the strike after any corporate-action adjustment, and how the collateral was split."
-              />
+              <CardHeader title="Closed" />
               <div className="divide-y divide-line-secondary">
                 {mine.closed.map((r) => (
                   <PositionCard

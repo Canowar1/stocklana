@@ -1,4 +1,6 @@
-# Stocklana
+# Thales
+
+Product name is **Thales**. The on-chain crate, program id, GitHub repo, and PDA layout stay `stocklana`; renaming those would redeploy and break the demo.
 
 A two-sided market where holders of tokenized equity on Solana write covered calls against idle positions, and any wallet can bid USDC premium for capped, non-liquidatable upside. Solana Foundation hackathon, deadline 25 September 2026 16:00 ET (extended from 18 September).
 

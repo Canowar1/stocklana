@@ -1,4 +1,4 @@
-# Stocklana — Execution Checklist
+# Thales — Execution Checklist
 
 Stable task ids. Any environment or session can pick this up, find the first unchecked box, and continue. Update the status line at the top of the block when you finish one.
 

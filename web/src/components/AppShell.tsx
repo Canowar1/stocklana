@@ -2,15 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { CLUSTER, PROGRAM_ID, EXPLORER } from "@/lib/config";
+import { CLUSTER } from "@/lib/config";
+import { APP_NAME, THEME_STORAGE_KEY } from "@/lib/brand";
 import { IconMarkets, IconPositions, IconActivity, IconSun, IconMoon } from "./icons";
-
-const WalletButton = dynamic(
-  () => import("@solana/wallet-adapter-react-ui").then((m) => m.WalletMultiButton),
-  { ssr: false, loading: () => <div className="h-11 w-36 rounded-lg bg-bg-tertiary" /> },
-);
+import { ConnectButton } from "./ConnectButton";
 
 const NAV = [
   { href: "/", label: "Markets", Icon: IconMarkets },
@@ -28,7 +24,7 @@ function ThemeToggle() {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
     document.documentElement.setAttribute("data-theme", next);
-    try { localStorage.setItem("stocklana-theme", next); } catch {}
+    try { localStorage.setItem(THEME_STORAGE_KEY, next); } catch {}
   };
   return (
     <button
@@ -67,14 +63,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-30 border-b border-line-secondary bg-bg-primary/85 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center gap-4 px-4 sm:px-6">
-          <Link href="/" className="flex shrink-0 items-center gap-2.5">
-            <svg viewBox="0 0 28 28" className="h-7 w-7" aria-hidden focusable="false">
-              <rect width="28" height="28" rx="7" fill="var(--brand-primary)" />
-              <path d="M8 18.5 12 12l3.4 3.2L20 8.5" stroke="var(--text-button)"
-                strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            </svg>
+          <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label={APP_NAME}>
+            <span
+              aria-hidden
+              className="inline-block h-7 w-7 bg-ink-primary [mask-image:url(/mark.png)] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain] [-webkit-mask-image:url(/mark.png)] [-webkit-mask-position:center] [-webkit-mask-repeat:no-repeat] [-webkit-mask-size:contain]"
+            />
             <span className="text-[15px] font-semibold tracking-tight text-ink-primary">
-              Stocklana
+              {APP_NAME}
             </span>
           </Link>
 
@@ -99,10 +94,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex min-w-0 items-center gap-2">
             <NetworkTag />
             <ThemeToggle />
-            <WalletButton />
+            <ConnectButton />
           </div>
         </div>
 
@@ -135,16 +130,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
 
       <footer className="border-t border-line-secondary">
-        <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-2 px-4 py-5 text-xs text-ink-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>Covered calls on tokenized equity, settled against a Pyth price on-chain.</p>
-          <a
-            href={EXPLORER(PROGRAM_ID)}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="tnum transition-colors hover:text-brand"
-          >
-            Program {PROGRAM_ID.slice(0, 6)}…{PROGRAM_ID.slice(-6)}
-          </a>
+        <div className="mx-auto w-full max-w-[1400px] px-4 py-5 text-xs text-ink-muted sm:px-6">
+          <p>Covered calls on tokenized equity. Upside above the strike is capped by the shares locked.</p>
         </div>
       </footer>
     </div>

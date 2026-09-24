@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { APP_NAME } from "@/lib/brand";
 
 /**
  * Puts the live price in the tab title, the way the trading venues do. A tab
@@ -9,11 +10,11 @@ import { useEffect } from "react";
  */
 export function TitleTicker({ price, symbol }: { price: number | null; symbol: string }) {
   useEffect(() => {
-    const base = `${symbol} · Stocklana`;
+    const base = `${symbol} · ${APP_NAME}`;
     document.title = price
       ? `${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | ${base}`
       : base;
-    return () => { document.title = "Stocklana"; };
+    return () => { document.title = APP_NAME; };
   }, [price, symbol]);
   return null;
 }

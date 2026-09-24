@@ -29,8 +29,8 @@ export function OfferBook({
     return (
       <EmptyState
         icon={<IconEmptyBook className="h-8 w-8" />}
-        title="No open offers"
-        body="This is the ordinary state of a new market. When someone writes a call it appears here for any wallet to bid on, and the writer picks which bid to take."
+            title="No open offers"
+            body="Write a call and it appears here."
       />
     );
   }

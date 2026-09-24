@@ -8,7 +8,6 @@ import { formatUsd, formatAmount, formatTimestamp, formatCountdown } from "@/lib
 import { useProgram } from "@/lib/program";
 import { settle, reclaim, cancelOrRefundBid, readableError } from "@/lib/actions";
 import { Badge, Button, AddressLink } from "./ui";
-import { IconWarning } from "./icons";
 import { TxFeedback, TxState } from "./TxFeedback";
 
 export type Role = "writer" | "buyer" | "bidder";
@@ -121,14 +120,8 @@ export function PositionCard({
             {formatAmount(writerKept, 8)} {market?.symbol ?? ""}
           </Row>
           {strikeAdjusted && (
-            <div className="sm:col-span-2 flex items-start gap-2 pt-1">
-              <IconWarning className="mt-0.5 h-3.5 w-3.5 shrink-0 text-state-warning" />
-              <p className="leading-relaxed text-ink-secondary">
-                The strike was written at {formatUsd(offer.strikeUsd)} and settled at{" "}
-                {formatUsd(offer.settledStrike)}. The mint&apos;s multiplier moved between those
-                two moments, which is how a corporate action reaches this position, and the
-                strike was adjusted by the same ratio so the economics were preserved.
-              </p>
+            <div className="sm:col-span-2 text-2xs text-state-warning">
+              Strike adjusted {formatUsd(offer.strikeUsd)} → {formatUsd(offer.settledStrike)}
             </div>
           )}
         </dl>

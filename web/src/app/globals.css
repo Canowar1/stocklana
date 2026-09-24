@@ -100,9 +100,17 @@ body {
   font-size: 0.875rem !important;
   font-weight: 500 !important;
   height: 44px !important;
+  max-width: 12.5rem;
   padding: 0 1rem !important;
   border-radius: 0.5rem !important;
   transition: background-color 180ms ease !important;
+}
+@media (max-width: 640px) {
+  .wallet-adapter-button {
+    max-width: 9.5rem;
+    padding: 0 0.75rem !important;
+    font-size: 0.8125rem !important;
+  }
 }
 .wallet-adapter-button:not([disabled]):hover {
   background: var(--brand-hover) !important;

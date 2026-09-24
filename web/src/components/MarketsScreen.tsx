@@ -14,10 +14,8 @@ export function MarketsScreen() {
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold tracking-tight text-ink-primary">Markets</h1>
-        <p className="max-w-2xl text-sm leading-relaxed text-ink-secondary">
-          Write a covered call against a position you already hold. The buyer pays premium in
-          USDC. At expiry the position settles against the price in the market&apos;s oracle
-          account, and the payout can never exceed the collateral.
+        <p className="text-sm text-ink-secondary">
+          Sell capped upside on a tokenized stock you already hold, or bid USDC for that upside.
         </p>
       </div>
 
@@ -32,10 +30,7 @@ export function MarketsScreen() {
       )}
 
       <Card as="section">
-        <CardHeader
-          title="Live markets"
-          description="The oracle column shows the price the program would read right now, how old that print is, and how wide its confidence band is. All three decide whether a position can settle."
-        />
+        <CardHeader title="Live markets" />
 
         {MARKETS.length === 0 ? (
           <EmptyState
@@ -45,15 +40,15 @@ export function MarketsScreen() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] border-collapse text-sm">
+            <table className="w-full min-w-[560px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-line-secondary text-2xs uppercase tracking-wide text-ink-muted">
-                  <th scope="col" className="px-5 py-3 text-left font-medium">Market</th>
-                  <th scope="col" className="px-5 py-3 text-left font-medium">Underlying</th>
-                  <th scope="col" className="px-5 py-3 text-right font-medium">Oracle price</th>
-                  <th scope="col" className="px-5 py-3 text-right font-medium">Limits</th>
-                  <th scope="col" className="px-5 py-3 text-right font-medium">Status</th>
-                  <th scope="col" className="px-5 py-3 text-right font-medium sr-only">Open</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium sm:px-5">Market</th>
+                  <th scope="col" className="hidden px-5 py-3 text-left font-medium md:table-cell">Underlying</th>
+                  <th scope="col" className="px-4 py-3 text-right font-medium sm:px-5">Price</th>
+                  <th scope="col" className="hidden px-5 py-3 text-right font-medium lg:table-cell">Limits</th>
+                  <th scope="col" className="px-4 py-3 text-right font-medium sm:px-5">Status</th>
+                  <th scope="col" className="px-4 py-3 text-right font-medium sr-only sm:px-5">Open</th>
                 </tr>
               </thead>
               <tbody>
@@ -75,10 +70,10 @@ export function MarketsScreen() {
                           <div className="mt-0.5 text-xs text-ink-secondary">{m.label}</div>
                         </Link>
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="hidden px-5 py-4 md:table-cell">
                         <AddressLink address={m.underlyingMint} />
                       </td>
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-4 py-4 text-right sm:px-5">
                         {loading && !read ? (
                           <div className="ml-auto h-5 w-24 animate-pulse rounded bg-bg-tertiary" />
                         ) : (
@@ -88,19 +83,17 @@ export function MarketsScreen() {
                           />
                         )}
                       </td>
-                      <td className="tnum px-5 py-4 text-right text-xs text-ink-secondary">
+                      <td className="tnum hidden px-5 py-4 text-right text-xs text-ink-secondary lg:table-cell">
                         <div>{m.maxStalenessSecs}s staleness</div>
                         <div className="text-ink-muted">±{m.maxConfBps} bps confidence</div>
                       </td>
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end">
+                      <td className="px-4 py-4 text-right sm:px-5">
                           <OracleStatusBadge
                             read={read} now={now} loading={loading}
                             maxStaleness={m.maxStalenessSecs} maxConfBps={m.maxConfBps}
                           />
-                        </div>
                       </td>
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-4 py-4 text-right sm:px-5">
                         <Link
                           href={`/markets/${m.symbol}`}
                           className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-brand transition-colors hover:bg-brand/10"
@@ -119,10 +112,7 @@ export function MarketsScreen() {
 
       {CLUSTER !== "mainnet" && OTHER_MARKETS.length > 0 && (
         <Card as="section">
-          <CardHeader
-            title={`${OTHER_MARKETS.length} markets configured for mainnet`}
-            description="These tokenized equities have a live Pyth price account on mainnet. They are not available on this network because neither the token nor its feed is deployed here."
-          />
+          <CardHeader title={`${OTHER_MARKETS.length} more on mainnet`} />
           <div className="flex flex-wrap gap-2 px-5 py-4">
             {OTHER_MARKETS.map((m) => (
               <span

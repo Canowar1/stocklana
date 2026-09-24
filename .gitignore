@@ -17,5 +17,6 @@ web/.next/
 web/node_modules/
 web/.env.local
 .next-build/
+*.tsbuildinfo
 .cursor/
 .superstack/

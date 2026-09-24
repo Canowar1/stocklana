@@ -253,7 +253,7 @@ Still open, with defaults that take effect automatically:
 
 | # | Question | Cheapest test | Default if unanswered |
 |---|---|---|---|
-| 1 | Project name | — | `Stocklana` as a working name; asset 1 needs a real one before submission |
+| 1 | Project name | — | **Thales**. Crate, program id, and GitHub remain `stocklana`. |
 | 2 | Is there a funded mainnet wallet at all | `solana balance` | No. The mainnet fork covers the technical video; nothing is deployed to mainnet |
 | 3 | The real user, named, with the moment | Answer it | §9 draft stands |
 | 4 | Does the devnet faucet mint need a rate limit | 10 minutes of thought | Yes, per-wallet cap. A drained faucet during judging is an avoidable death |

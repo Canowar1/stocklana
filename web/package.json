@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NEXT_DIST_DIR=.next-build next build",
+    "build": "sh -c 'if [ -n \"$VERCEL\" ]; then next build; else NEXT_DIST_DIR=.next-build next build; fi'",
     "start": "NEXT_DIST_DIR=.next-build next start",
     "lint": "next lint"
   },
@@ -14,9 +14,9 @@
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",
-    "@solana/wallet-adapter-wallets": "^0.19.32",
     "@solana/web3.js": "^1.98.0",
     "next": "^15.1.0",
+    "process": "^0.11.10",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

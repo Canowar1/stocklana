@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import { PublicKey } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { MarketConfig } from "@/lib/config";
@@ -13,11 +12,7 @@ import { Field, Input, Button, Card } from "./ui";
 import { PayoffChart } from "./PayoffChart";
 import { IconWarning } from "./icons";
 import { TxFeedback, TxState } from "./TxFeedback";
-
-const WalletButton = dynamic(
-  () => import("@solana/wallet-adapter-react-ui").then((m) => m.WalletMultiButton),
-  { ssr: false, loading: () => <div className="h-11 w-36 rounded-lg bg-bg-tertiary" /> },
-);
+import { ConnectButton } from "./ConnectButton";
 
 const MARKET_OPEN_UTC = 13 * 60 + 30;
 const MARKET_CLOSE_UTC = 20 * 60;
@@ -83,7 +78,6 @@ export function WriteCallForm({ market, marketAddress, oraclePrice, onWritten, l
   const sizeUnits = toBaseUnits(size, decimals);
   const overBalance = sizeUnits !== null && balance !== null && sizeUnits > balance.raw;
   const sizeNumber = parseFloat(size);
-  const strikeNumber = parseFloat(strike);
 
   const canSubmit =
     !!program && !!publicKey && !!marketAddress &&
@@ -120,9 +114,8 @@ export function WriteCallForm({ market, marketAddress, oraclePrice, onWritten, l
 
   return (
     <div className="space-y-5 px-5 py-5">
-      <p className="text-xs leading-relaxed text-ink-secondary">
-        Your collateral is the underlying itself, not USDC. You keep the position and sell the
-        upside above your strike.
+      <p className="text-xs text-ink-secondary">
+        Collateral is the stock. You sell the upside above the strike.
       </p>
 
       <dl className="flex flex-wrap gap-x-8 gap-y-1 border-y border-line-secondary py-2.5 text-xs">
@@ -192,22 +185,12 @@ export function WriteCallForm({ market, marketAddress, oraclePrice, onWritten, l
             premium={parseFloat(minPremium) || 0} symbol={market.symbol}
           />
           <dl className="space-y-1.5 border-t border-line-secondary pt-3 text-xs">
-            <Row label="Capped value above the strike">
-              {strikeNumber > 0
-                ? `${formatUsd(sizeNumber * strikeNumber)} + premium`
-                : "set a strike"}
+            <Row label="Buyer max">{sizeNumber.toLocaleString("en-US")} {market.symbol}</Row>
+            <Row label="Capped at">
+              {parseFloat(strike) > 0 ? formatUsd(toBaseUnits(strike, 8) ?? 0n) : "set a strike"}
             </Row>
-            <Row label="Most the buyer can ever receive">
-              {sizeNumber.toLocaleString("en-US")} {market.symbol}
-            </Row>
-            <Row label="Below the strike">You keep the position and the premium</Row>
-            <Row label="Premium floor">
-              {minPremium ? `${minPremium} USDC` : "any bid accepted"}
-            </Row>
-            <Row label="Protocol fee">50 bps of the accepted premium</Row>
-            {/* Every venue in this category shows a number here. Ours is the
-                absence, and stating it is the point. */}
-            <Row label="Liquidation price" tone="success">None</Row>
+            <Row label="You keep below strike">the shares, plus the premium</Row>
+            <Row label="Liquidation" tone="success">None</Row>
           </dl>
         </Card>
       )}
@@ -230,7 +213,7 @@ export function WriteCallForm({ market, marketAddress, oraclePrice, onWritten, l
         </Button>
       ) : (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <WalletButton />
+          <ConnectButton />
           <span className="text-xs text-ink-muted">Connect a wallet to write a call</span>
         </div>
       )}
